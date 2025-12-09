@@ -1,7 +1,7 @@
 
 import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
-import { getConfig } from './config.js';
+import { getConfig } from './config.worker.js';
 import { getEnv } from './env.js';
 import storage from './storage.js';
 import * as rdClient from './rdClient.js';

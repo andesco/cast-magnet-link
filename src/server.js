@@ -2,7 +2,7 @@ import 'dotenv/config'; // MUST be first to load .env before other imports
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import app from './app.js';
-import { getConfig } from './config.js';
+import { getConfig } from './config.node.js';
 
 const config = getConfig(process.env);
 
