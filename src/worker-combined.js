@@ -21,7 +21,7 @@ app.use('*', async (c, next) => {
     console.log('Environment:', JSON.stringify(Object.keys(env)));
     console.log('RD_ACCESS_TOKEN present:', 'RD_ACCESS_TOKEN' in env);
     console.log('WEBDAV_PASSWORD present:', 'WEBDAV_PASSWORD' in env);
-    console.log('STRM_CACHE present:', 'STRM_CACHE' in env);
+    console.log('CAST_MAGNET_LINK present:', 'CAST_MAGNET_LINK' in env);
 
     const config = getConfig(env);
 

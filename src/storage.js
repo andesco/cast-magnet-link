@@ -14,7 +14,7 @@ if (!isWorker) {
 const workerStorage = {
     // STRM Cache
     async getStrmEntry(env, linkId) {
-        return env.STRM_CACHE.get(linkId, 'json');
+        return env.CAST_MAGNET_LINK.get(linkId, 'json');
     },
     async addStrmEntry(env, linkId, originalLink, unrestrictedUrl, filename, manuallyAdded = false, filesize = 0) {
         // If the new entry is not manually added, check if an existing manually added entry exists.
@@ -24,7 +24,7 @@ const workerStorage = {
                 // If a manually added entry exists, just update its generation date to keep it fresh
                 existingEntry.generatedAt = new Date().toISOString();
                 const sevenDaysInSeconds = 7 * 24 * 60 * 60;
-                return env.STRM_CACHE.put(linkId, JSON.stringify(existingEntry), {
+                return env.CAST_MAGNET_LINK.put(linkId, JSON.stringify(existingEntry), {
                     expirationTtl: sevenDaysInSeconds,
                 });
             }
@@ -40,7 +40,7 @@ const workerStorage = {
         };
         // KV items have a minimum 60s TTL. 7 days in seconds.
         const sevenDaysInSeconds = 7 * 24 * 60 * 60;
-        return env.STRM_CACHE.put(linkId, JSON.stringify(entry), {
+        return env.CAST_MAGNET_LINK.put(linkId, JSON.stringify(entry), {
             expirationTtl: sevenDaysInSeconds,
         });
     },
@@ -50,13 +50,13 @@ const workerStorage = {
             entry.unrestrictedUrl = newUnrestrictedUrl;
             entry.generatedAt = new Date().toISOString();
             const sevenDaysInSeconds = 7 * 24 * 60 * 60;
-            return env.STRM_CACHE.put(linkId, JSON.stringify(entry), {
+            return env.CAST_MAGNET_LINK.put(linkId, JSON.stringify(entry), {
                 expirationTtl: sevenDaysInSeconds,
             });
         }
     },
     async getAllStrmEntries(env) {
-        const list = await env.STRM_CACHE.list();
+        const list = await env.CAST_MAGNET_LINK.list();
         const keys = list.keys.map(k => k.name);
         const promises = keys.map(key => this.getStrmEntry(env, key));
         return Promise.all(promises);
