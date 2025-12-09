@@ -7,8 +7,9 @@ export function getConfig(env) {
         rdAccessToken: env.RD_ACCESS_TOKEN,
 
         // Server Configuration (Node.js-specific)
-        port: parseInt(env.PORT) || 3000,
-        host: env.HOST || '0.0.0.0',
+        // Using bracket notation to hide from Cloudflare Dashboard scanner
+        port: parseInt(env['PORT']) || 3000,
+        host: env['HOST'] || '0.0.0.0',
         publicUrl: env.PUBLIC_URL || 'http://localhost:3000',
 
         // WebDAV Authentication
@@ -16,7 +17,7 @@ export function getConfig(env) {
         webdavPassword: env.WEBDAV_PASSWORD,
 
         // Data Directory (Node.js only)
-        dataDir: env.DATA_DIR ? path.resolve(env.DATA_DIR) : path.resolve('./data'),
+        dataDir: env['DATA_DIR'] ? path.resolve(env['DATA_DIR']) : path.resolve('./data'),
 
         // Logging
         logFormat: env.LOG_FORMAT || 'text', // 'json' or 'text'

@@ -5,7 +5,7 @@ const isWorker = typeof caches !== 'undefined';
 // Conditionally import config only in Node.js environment
 let config;
 if (!isWorker) {
-    const { getConfig } = await import('./config.js');
+    const { getConfig } = await import('./config.node.js');
     config = getConfig(process.env);
 }
 
