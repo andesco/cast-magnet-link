@@ -1,0 +1,14 @@
+name = "cast-magnet-link"
+main = "src/app.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+# account_id = ""
+workers_dev = true
+preview_urls = false
+
+[[kv_namespaces]]
+binding = "CAST_MAGNET_LINK"
+id = ""
+
+[site]
+bucket = "./public"

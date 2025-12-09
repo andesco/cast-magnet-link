@@ -1,0 +1,40 @@
+{
+  "name": "cast-magnet-link",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "WebDAV streaming service for Real-Debrid casted magnet links",
+  "main": "src/server.js",
+  "scripts": {
+    "node:start": "node src/server.js",
+    "node:deploy:local": "node scripts/deploy-localhost.cjs",
+    "node:deploy:remote": "./scripts/deploy-remote.sh",
+    "node:dev": "nodemon src/server.js",
+    "worker:deploy": "wrangler deploy --config wrangler.local.toml",
+    "worker:dev": "wrangler dev --config wrangler.local.toml",
+    "worker:tail": "wrangler tail --config wrangler.local.toml",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "webdav",
+    "real-debrid",
+    "streaming",
+    "debrid-media-manager"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@hono/node-server": "^1.19.5",
+    "axios": "^1.7.7",
+    "basic-auth": "^2.0.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
+    "hono": "^4.10.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "wrangler": "^4.45.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

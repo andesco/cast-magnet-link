@@ -1,0 +1,15 @@
+<svg width="1000" height="1500" viewBox="0 0 1000 1500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Black background -->
+  <rect width="100%" height="100%" fill="black" />
+
+  <!-- Google Cast Logo -->
+  <!-- The logo is wrapped in a group <g> tag to center and scale it. -->
+  <!-- transform attributes: -->
+  <!-- translate(500, 750): Moves the logo's center to the SVG's center (1000/2, 1500/2). -->
+  <!-- scale(25): Enlarges the logo by a factor of 25. -->
+  <!-- translate(-12, -12): Shifts the original 24x24 logo so its center is at the (0,0) origin before scaling. -->
+  <g transform="translate(500, 750) scale(25) translate(-12, -12)" fill="#EF8633">
+	<path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+  </g>
+</svg>
+

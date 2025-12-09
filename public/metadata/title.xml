@@ -1,0 +1,7 @@
+<media type="Other">
+	<title>Title</title>
+	<description>Description for media.
+	</description>
+	<rating>G</rating>
+	<published>{ISO date: YYYY-MM-DD}</published>
+</media>

@@ -1,0 +1,35 @@
+[Unit]
+Description=Cast Magnet Link - WebDAV Streaming Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/cast-magnet-link
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cast-magnet-link
+
+# Environment file
+EnvironmentFile=/opt/cast-magnet-link/.env
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/cast-magnet-link/data
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+
+[Install]
+WantedBy=multi-user.target
