@@ -1,8 +1,9 @@
+/* Common styles */
 article {
     margin-top: 2rem;
 }
 
-/* Status badge styles */
+/* Result page styles */
 .status-badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
@@ -29,43 +30,4 @@ article {
 
 code {
     font-weight: normal !important;
-}
-
-.status-info {
-    padding: 1rem;
-    border-radius: var(--pico-border-radius);
-    background: var(--pico-background-color);
-    margin-bottom: 1rem;
-}
-
-.status-info code {
-    font-size: 0.875rem;
-}
-
-.casted-list {
-    list-style: none;
-    padding: 0;
-    margin: 0.5rem 0;
-}
-
-.casted-list li {
-    margin-bottom: 0.5rem;
-}
-
-ul {
-    list-style-type: disc;
-    padding-left: 1.5rem;
-}
-
-ul li {
-    padding: 0.25rem 0;
-}
-
-ul li a {
-    font-weight: 500;
-}
-
-ul li small {
-    margin-left: 0.5rem;
-    color: var(--pico-muted-color);
 }
