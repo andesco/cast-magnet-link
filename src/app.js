@@ -63,21 +63,15 @@ function getHomePage(error = null, success = null, downloads = []) {
     <main class="container">
         <article>
             <header>
-                ${error ? `
-                <span class="status-badge error">ERROR</span>
-                <h2>Error</h2>
+                ${error ? `<span class="status-badge error">ERROR</span>` : ''}
+                ${success ? `<span class="status-badge success">SUCCESS</span>` : ''}
+                <h2>${error ? 'Error' : success ? success : 'Cast Magnet Link'}</h2>
+                ${!error && !success ? '<p>Enter a magnet link or infohash to add to WebDAV</p>' : ''}
             </header>
-            <code style="display: block; white-space: pre-wrap; padding: 0.75rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius);">${error}</code>
-            <footer style="margin-top: 1rem;">` : ''}
-                ${success ? `
-                <span class="status-badge success">SUCCESS</span>
-                <h2>${success}</h2>
-            </header>
-            <footer style="margin-top: 1rem;">` : ''}
-                ${!error && !success ? `
-                <h2>Cast Magnet Link</h2>
-                <p>Enter a magnet link or infohash to add to WebDAV</p>
-            </header>` : ''}
+
+            ${error ? `
+            <code style="display: block; white-space: pre-wrap; padding: 0.75rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius); margin-bottom: 1rem;">${error}</code>
+            ` : ''}
 
             ${downloads && downloads.length > 0 ? `
             <div class="status-info">
@@ -129,21 +123,15 @@ function getAddPage(error = null, success = null, torrentInfo = null) {
     <main class="container">
         <article>
             <header>
-                ${error ? `
-                <span class="status-badge error">ERROR</span>
-                <h2>Error</h2>
+                ${error ? `<span class="status-badge error">ERROR</span>` : ''}
+                ${success ? `<span class="status-badge success">SUCCESS</span>` : ''}
+                <h2>${error ? 'Error' : success || 'Cast Magnet Link: Add'}</h2>
+                ${!error && !success ? '<p>Enter a magnet link or infohash</p>' : ''}
             </header>
-            <code style="display: block; white-space: pre-wrap; padding: 0.75rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius);">${error}</code>
-            <footer style="margin-top: 1rem;">` : ''}
-                ${success ? `
-                <span class="status-badge success">SUCCESS</span>
-                <h2>${success}</h2>
-            </header>
-            <footer style="margin-top: 1rem;">` : ''}
-                ${!error && !success ? `
-                <h2>Cast Magnet Link: Add</h2>
-                <p>Enter a magnet link or infohash</p>
-            </header>` : ''}
+
+            ${error ? `
+            <code style="display: block; white-space: pre-wrap; padding: 0.75rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius); margin-bottom: 1rem;">${error}</code>
+            ` : ''}
 
             ${torrentInfo ? `
             <div>
