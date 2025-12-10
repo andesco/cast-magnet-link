@@ -45,23 +45,39 @@ app.use('*', async (c, next) => {
 
 function getHomePage(error = null, success = null, downloads = []) {
   return `<!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
     <meta charset="UTF-8">
     <title>Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link rel="stylesheet" href="/style.css">
+    <script>
+        // Support light and dark mode based on system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
 <body>
     <main class="container">
         <article>
             <header>
-                ${error ? `<p style="color: red;">${error}</p>` : ''}
-                ${success ? `<p style="color: green;">${success}</p>` : ''}
+                ${error ? `
+                <span class="status-badge error">ERROR</span>
+                <h2>Error</h2>
+            </header>
+            <code style="display: block; white-space: pre-wrap; padding: 0.75rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius);">${error}</code>
+            <footer style="margin-top: 1rem;">` : ''}
+                ${success ? `
+                <span class="status-badge success">SUCCESS</span>
+                <h2>${success}</h2>
+            </header>
+            <footer style="margin-top: 1rem;">` : ''}
+                ${!error && !success ? `
                 <h2>Cast Magnet Link</h2>
                 <p>Enter a magnet link or infohash to add to WebDAV</p>
-            </header>
+            </header>` : ''}
 
             ${downloads && downloads.length > 0 ? `
             <div class="status-info">
@@ -95,23 +111,39 @@ function getHomePage(error = null, success = null, downloads = []) {
 
 function getAddPage(error = null, success = null, torrentInfo = null) {
     return `<!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
     <meta charset="UTF-8">
     <title>Add Magnet - Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link rel="stylesheet" href="/style.css">
+    <script>
+        // Support light and dark mode based on system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
 <body>
     <main class="container">
         <article>
             <header>
-                ${error ? `<p style="color: red;">${error}</p>` : ''}
-                ${success ? `<p style="color: green;">${success}</p>` : ''}
-                <h2>${success || error || 'Cast Magnet Link: Add'}</h2>
-                ${!success && !error ? '<p>Enter a magnet link or infohash</p>' : ''}
+                ${error ? `
+                <span class="status-badge error">ERROR</span>
+                <h2>Error</h2>
             </header>
+            <code style="display: block; white-space: pre-wrap; padding: 0.75rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius);">${error}</code>
+            <footer style="margin-top: 1rem;">` : ''}
+                ${success ? `
+                <span class="status-badge success">SUCCESS</span>
+                <h2>${success}</h2>
+            </header>
+            <footer style="margin-top: 1rem;">` : ''}
+                ${!error && !success ? `
+                <h2>Cast Magnet Link: Add</h2>
+                <p>Enter a magnet link or infohash</p>
+            </header>` : ''}
 
             ${torrentInfo ? `
             <div>
@@ -141,12 +173,19 @@ function getAddPage(error = null, success = null, torrentInfo = null) {
 
 function getSelectFilePage(files, torrentId, title) {
     return `<!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
     <meta charset="UTF-8">
     <title>Select File - Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/style.css">
+    <script>
+        // Support light and dark mode based on system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
 <body>
     <main class="container">
