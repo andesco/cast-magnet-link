@@ -24,10 +24,11 @@ app.use('*', async (c, next) => {
     await next();
 });
 
-// Basic Auth Middleware - Protect ALL routes except /health
+// Basic Auth Middleware - Protect ALL routes except /health and static files
 app.use('*', async (c, next) => {
-    // Skip auth for health check endpoint
-    if (c.req.path === '/health') {
+    // Skip auth for health check and static files
+    const publicPaths = ['/health', '/style.css', '/Infuse/', '/metadata/'];
+    if (publicPaths.some(path => c.req.path === path || c.req.path.startsWith(path))) {
         return next();
     }
 
@@ -439,6 +440,82 @@ app.get('/add/:magnetOrHash', async (c) => {
         console.error('Error adding magnet via URL path:', err.message);
         return c.html(getAddPage(`Failed to cast: ${err.message}`));
     }
+});
+
+// Serve stylesheet
+app.get('/style.css', (c) => {
+    const css = `article {
+    margin-top: 2rem;
+}
+
+/* Status badge styles */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    color: white !important;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.status-badge.success {
+    background: #43a047 !important;
+    background-color: #43a047 !important;
+}
+
+.status-badge.warning {
+    background: #fb8c00 !important;
+    background-color: #fb8c00 !important;
+}
+
+.status-badge.error {
+    background: #e53935 !important;
+    background-color: #e53935 !important;
+}
+
+code {
+    font-weight: normal !important;
+}
+
+.status-info {
+    padding: 1rem;
+    border-radius: var(--pico-border-radius);
+    background: var(--pico-background-color);
+    margin-bottom: 1rem;
+}
+
+.status-info code {
+    font-size: 0.875rem;
+}
+
+.casted-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0;
+}
+
+.casted-list li {
+    margin-bottom: 0.5rem;
+}
+
+ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+}
+
+ul li {
+    padding: 0.25rem 0;
+}
+
+ul li a {
+    font-weight: 500;
+}
+
+ul li small {
+    margin-left: 0.5rem;
+    color: var(--pico-muted-color);
+}`;
+    return c.text(css, 200, { 'Content-Type': 'text/css', 'Cache-Control': 'public, max-age=3600' });
 });
 
 app.get('/health', (c) => {
