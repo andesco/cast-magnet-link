@@ -7,28 +7,28 @@ article {
     display: inline-block;
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
-    color: white !important;
+    color: white;
     font-weight: 600;
     margin-bottom: 1rem;
 }
 
 .status-badge.success {
-    background: #43a047 !important;
-    background-color: #43a047 !important;
+    background: #43a047;
+    background-color: #43a047;
 }
 
 .status-badge.warning {
-    background: #fb8c00 !important;
-    background-color: #fb8c00 !important;
+    background: #fb8c00;
+    background-color: #fb8c00;
 }
 
 .status-badge.error {
-    background: #e53935 !important;
-    background-color: #e53935 !important;
+    background: #e53935;
+    background-color: #e53935;
 }
 
 code {
-    font-weight: normal !important;
+    font-weight: normal;
 }
 
 .status-info {
