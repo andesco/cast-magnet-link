@@ -221,7 +221,7 @@ async function processMagnet(c, magnetOrHash, userIP = null) {
 		</div>
 		<form method="POST" action="/add">
 			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-			<button type="submit">Add Torrent</button>
+			<button type="submit">Add Magnet Link</button>
 		</form>
 		${footer()}
 	`;
@@ -272,7 +272,7 @@ async function processSelectedFile(c, torrentId, fileId, userIP = null) {
 		</div>
 		<form method="POST" action="/add">
 			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-			<button type="submit">Add Torrent</button>
+			<button type="submit">Add Magnet Link</button>
 		</form>
 		${footer()}
 	`;
@@ -326,6 +326,11 @@ app.get('/', async (c) => {
 				`).join('')}
 			</ul>
 		</div>
+        <form method="POST" action="/add">
+            <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+            <button type="submit">Add Magnet Link</button>
+        </form>
+        <hr>
 		` : ''}
 		${castedLinks && castedLinks.length > 0 ? `
 		<div class="status-info">
@@ -338,11 +343,8 @@ app.get('/', async (c) => {
 				`).join('')}
 			</ul>
 		</div>
+        <a href="https://debridmediamanager.com/stremio/manage" target="_blank" role="button">Manage Casted Links</a>
 		` : ''}
-		<form method="POST" action="/add">
-			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-			<button type="submit">Add Magnet Link</button>
-		</form>
 		${footer()}
 	`;
     return c.html(layout('Cast Magnet Link', content));
@@ -353,7 +355,7 @@ app.get('/add', (c) => {
 		${statusHeader(null, null, 'Cast Magnet Link: Add', 'Enter a magnet link or infohash')}
 		<form method="POST" action="/add">
 			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-			<button type="submit">Add Torrent</button>
+			<button type="submit">Add Magnet Link</button>
 		</form>
         <small>
             <p style="margin-top: 2rem;">Redirecting a magnet link to this page will automatically create a new download link:</p>
@@ -378,7 +380,7 @@ app.post('/add', async (c) => {
 			${statusHeader('Please provide a magnet link or infohash')}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-				<button type="submit">Add Torrent</button>
+				<button type="submit">Add Magnet Link</button>
 			</form>
 			${footer()}
 		`;
@@ -394,7 +396,7 @@ app.post('/add', async (c) => {
 			${statusHeader(`Failed to cast: ${err.message}`)}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-				<button type="submit">Add Torrent</button>
+				<button type="submit">Add Magnet Link</button>
 			</form>
 			${footer()}
 		`;
@@ -410,7 +412,7 @@ app.post('/add/select', async (c) => {
 			${statusHeader('Invalid file selection')}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-				<button type="submit">Add Torrent</button>
+				<button type="submit">Add Magnet Link</button>
 			</form>
 			${footer()}
 		`;
@@ -426,7 +428,7 @@ app.post('/add/select', async (c) => {
 			${statusHeader(`Failed to cast: ${err.message}`)}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-				<button type="submit">Add Torrent</button>
+				<button type="submit">Add Magnet Link</button>
 			</form>
 			${footer()}
 		`;
@@ -442,7 +444,7 @@ app.get('/add/:magnetOrHash', async (c) => {
 			${statusHeader('Please provide a magnet link or infohash')}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-				<button type="submit">Add Torrent</button>
+				<button type="submit">Add Magnet Link</button>
 			</form>
 			${footer()}
 		`;
@@ -458,7 +460,7 @@ app.get('/add/:magnetOrHash', async (c) => {
 			${statusHeader(`Failed to cast: ${err.message}`)}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-				<button type="submit">Add Torrent</button>
+				<button type="submit">Add Magnet Link</button>
 			</form>
 			${footer()}
 		`;
