@@ -351,17 +351,18 @@ app.get('/', async (c) => {
 app.get('/add', (c) => {
 	const content = `
 		${statusHeader(null, null, 'Cast Magnet Link: Add', 'Enter a magnet link or infohash')}
-		<div id="redirect-rules"><h3><a href="#redirect-rules" aria-disabled="false" class="header-anchor-trigger">#</a><span>Redirect Rules</span></h3></div>
-		<p>Any browser extension that supports URL redirect rules can be used to redirect magnet links. For example:</p>
-		<p><strong>URL Matching Pattern:</strong></p>
-		<p><code>/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/</code></p>
-		<p><strong>Replacement Options:</strong></p>
-		<p><code>https://zurgproxy.andrewe.dev/add/$1</code></p>
-		<p><strong><a href="https://apple.co/4e0lkPG">StopTheMadness Pro</a></strong> is a powerful Safari browser extension that supports <a href="https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html">URL redirect rules</a>.</p>
 		<form method="POST" action="/add">
 			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
 			<button type="submit">Add Torrent</button>
 		</form>
+        
+        <small>
+            <p>
+            <p style="margin-top: 2rem;">A browser extension like <a href="https://apple.co/4e0lkPG">StopTheMadness Pro</a> that supports <a href="https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html">URL redirect rules</a> can redirect magnet links to this page and automatically create a new download link:</p>
+            <p>URL matching pattern: <code>/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/</code>
+            <br />replacement pattern: <code>https://cast-magnet-link.dev/add/$1</code></p>
+        </small>
+
 		${footer()}
 	`;
     return c.html(layout('Add Magnet', content));
@@ -721,8 +722,8 @@ app.get('/webdav/', async (c) => {
 		${dmmFiles && dmmFiles.length > 0 ? `
 		<div class="status-info">
 			<h3>DMM Casted Links:</h3>
-			<p><small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small><br />
-			   <small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
+			<p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small><br />
+			   <small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small></p>
 			<ul>
 				${dmmFiles.map(file => `
 				<li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
