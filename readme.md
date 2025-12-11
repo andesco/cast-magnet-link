@@ -7,17 +7,17 @@ Cast Magnet Link makes it quick and easy to stream [Real-Debrid] hosted media:
 * added manually using magnet links
 
 Cast Magnet Link is:
-* compatible with [Infuse] and other media players that support `WebDAV` and `.strm` files
-* an alternative to [DMM Cast](https://debridmediamanager.com/stremio) but <ins>not</ins> a Stremio-compatible add-on
+* compatible with [Infuse] and other media players that support **`WebDAV`** and **`.strm`** files
+* a WebDAV alternative to use [DMM Cast] <u>without</u> its [Stremio add-on].
 * built on [Hono] to run as either a Cloudflare Workers serverless function or a Node.js system service.
 
 ## Features
 
 **Cast Magnet Links**: Add magnet links or infohashes to stream media <u>without</u> adding them to your Real-Debrid library.
 
-**WebDAV**: Access your recent media via WebDAV and `.strm` files.
+**DMM Cast**: Steam recently casted media <u>without</u> Stremio compatability.
 
-**Direct Streaming**: Stream your recent media using `.strm` files which redirect to unrestricted Real-Debrid downloads.
+**Direct Streaming**: Access your recent media via **`WebDAV`** and **`.strm`** files (which contain and redirect to unrestricted Real-Debrid downloads).
 
 ## Deploy to Cloudflare
    
@@ -56,40 +56,42 @@ Cast Magnet Link is:
 
 ### Adding Media
 
-* **Cast from [Debrid Media Manager]**
+* **Cast from Debrid Media Manager:** \
+  cast: <code>[debridmediamanager.com](https://debridmediamanager.com)</code> \
+  manage casted links: <code>[debridmediamanager.com/stremio/manage](https://debridmediamanager.com/stremio/manage)</code>
 
 * **Add a Magnet Link**\
    manually: `https://{hostname}/add` \
    query parameter: `https://{hostname}/?add{magnet link}` \
    path parameter:  `https://{hostname}/add/{magnet link}`
 
-When submitting a magnet link or infohash, the service automatically:
-
-1. adds the magnet link to Real-Debrid;
-2. auto-selects the file (only one large file exists)
-3. prompts for file selection (multiple large files exist)
-4. generates and caches an unrestricted download link
-5. removes the magnet link from your library (while keeping the download link)
+  When submitting a magnet link or infohash, the service automatically:
+  
+  - adds the magnet link to Real-Debrid;
+  - auto-selects the file (only one large file exists)
+  - prompts for file selection (multiple large files exist)
+  - generates and caches an unrestricted download link
+  - removes the magnet link from your library (while keeping the download link)
 
 ### WebDAV
 
-Connect your media player using these credentials:
+Add the WebDAV endpoint to your media player:
 
 - **URL**: `https://{hostname}/webdav/`
 - **username**
 - **password**
 
-The WebDAV directory displays your **5 most recent unique Real-Debrid download links** as `.strm` files. This list is refreshed each time you access the service.
+The WebDAV directory and file list is refreshed each time you access the service to include `.strm` files for:
 
-> [!important]
-> To ensure compatability with Infuse and other media players, the URL in each `.strm` file inclues the service’s username and password (if set): `https://username:password@{hostname}/strm/:linkId`
-
+- **the most recent Real-Debrid download links**
+- **all DMM Cast media added within the last 7 days**
 
 Static metadata files from the `public/` directory are also served for media player  coverart:
 
-<p style="text-align: center;"><img src="public/Infuse/favorite-atv.png" alt="Infuse artwork" width="300px"><br>
-Cast Media Link</p>
-
+<center>
+  <p><img src="public/Infuse/favorite-atv.png" alt="Infuse artwork" width="300px"><br>
+Cast Magnet Link</p>
+</center>
 
 ## Configuration
 
@@ -131,44 +133,26 @@ Run the service on a traditional VPS or server.
 [! warning]
 > Cloudlfare Worker deployment is recommended and used by the developer.
 
-**Local Deployment**:
-```bash
-npm run node:deploy:local
-```
-
-**Remote SSH Deployment**:
-```bash
-npm run node:deploy:remote
-```
-
-The remote deployment script will:
-- prompt for your SSH hostname if not configured
-- sync files via rsync
-- install dependencies
-- set proper file permissions and ownership
-- configure and restart the systemd service
-- optionally save your SSH host to `.env` for future deployments
-
-Prerequisites for remote deployment:
-1. configure `.env` with `SSH_HOST={server address/host/shortcut}`
-1. optionally set `DEPLOY_PATH` (defaults to `/opt/cast-magnet-link`)
-1. optionally set `REMOTE_USER` (defaults to `www-data`)
-
-Both scripts will create `.env` from `.env.example` if needed and guide you through configuration.
-
 **Manual Deployment**:
 
-1. `cp .env.example .enn`
+1. `cp .env.example .env`
 
-2. edit `.env` with credentials and variables: `RD_ACCESS_TOKEN` `WEBDAV_PASSWORD` etc.
+2. edit `.env` with credentials and variables: `RD_ACCESS_TOKEN` `WEBDAV_USERNAME` `WEBDAV_PASSWORD` etc.
 
 3. `mkdir -p data`
 
 4. `npm run node:start`
 
-**`systemd`**
-
-To run as a persistent background service, create a `systemd` service file.
+5. To run as a persistent background service, use the provided `cast-magnet-link.service.example` as a template for a **`systemd`** service file.
+   - Copy the example file to `/etc/systemd/system/cast-magnet-link.service`.
+   - Edit the new file, adjusting `User`, `WorkingDirectory`, and `ExecStart` as needed.
+   
+   - Enable and start the service:
+   
+   ```bash
+   sudo systemctl enable cast-magnet-link.service
+   sudo systemctl start cast-magnet-link.service
+   ```
 
 ### Health Check Endpoint
 
@@ -186,7 +170,7 @@ http://your-server-url/health
 
 ### Service Logs
 
-Node.js/systemd:
+Node.js `systemd`:
 ```bash
 sudo journalctl -u cast-magnet-link -f
 ```
@@ -235,6 +219,7 @@ If no public IP is detected (e.g., local development), requests proceed without 
 [Debrid Media Manager]: https://debridmediamanager.com
 [dmm]: http://debridmediamanager.com
 [DMM]: https://debridmediamanager.com
-[DMM Cast]: https://debridmediamanager.com/stremio
+[DMM Cast]: https://debridmediamanager.com/stremio/manage
+[Stremio add-on]: https://debridmediamanager.com/stremio
 [Real-Debrid]: https://real-debrid.com
 [download links]: https://real-debrid.com/downloads
