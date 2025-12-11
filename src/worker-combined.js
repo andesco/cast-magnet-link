@@ -61,7 +61,7 @@ function getHomePage(error = null, success = null, downloads = []) {
     <title>Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
 </head>
 <body>
     <main class="container">
@@ -111,7 +111,7 @@ function getAddPage(error = null, success = null, torrentInfo = null) {
     <title>Add Magnet - Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
 </head>
 <body>
     <main class="container">
@@ -491,7 +491,7 @@ app.get('/webdav/', async (c) => {
     <title>WebDAV - Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
 </head>
 <body>
     <main class="container">

@@ -38,10 +38,6 @@ code {
     margin-bottom: 1rem;
 }
 
-.status-info code {
-    font-size: 0.875rem;
-}
-
 .casted-list {
     list-style: none;
     padding: 0;

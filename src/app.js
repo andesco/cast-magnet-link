@@ -43,7 +43,7 @@ app.use('*', async (c, next) => {
 
 // --- HTML Templates ---
 
-function getHomePage(error = null, success = null, downloads = [], castedLinks = []) {
+function getHomePage(error = null, success = null, downloads = [], castedLinks = [], hostname = '') {
   return `<!DOCTYPE html>
 <html data-theme="light">
 <head>
@@ -51,7 +51,7 @@ function getHomePage(error = null, success = null, downloads = [], castedLinks =
     <title>Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
     <script>
         // Support light and dark mode based on system preference
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -76,7 +76,8 @@ function getHomePage(error = null, success = null, downloads = [], castedLinks =
             ${downloads && downloads.length > 0 ? `
             <div class="status-info">
                 <h3>Most Recent Download Links:</h3>
-                <p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
+                <p><small>WebDAV: <code>${hostname}/webdav/downloads/</code></small><br />
+                   <small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
                 <ul>
                     ${downloads.map(d => `
                     <li><a href="${d.downloadUrl}" target="_blank">${d.filename}</a> <small><code>${formatBytes(d.filesize || 0)}</code></small></li>
@@ -88,7 +89,8 @@ function getHomePage(error = null, success = null, downloads = [], castedLinks =
             ${castedLinks && castedLinks.length > 0 ? `
             <div class="status-info">
                 <h3>Most Recent Casted Links:</h3>
-                <p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
+                <p><small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small><br />
+                   <small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
                 <ul>
                     ${castedLinks.map(link => `
                     <li><a href="${link.url}" target="_blank">${link.filename}</a> <small><code>${link.sizeGB} GB</code></small></li>
@@ -124,7 +126,7 @@ function getAddPage(error = null, success = null, torrentInfo = null) {
     <title>Add Magnet - Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
     <script>
         // Support light and dark mode based on system preference
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -180,7 +182,7 @@ function getSelectFilePage(files, torrentId, title) {
     <title>Select File - Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
     <script>
         // Support light and dark mode based on system preference
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -287,8 +289,8 @@ async function getCastedLinks(config) {
 }
 
 /**
- * Fetch Real-Debrid downloads for home page display
- * Returns ONLY RD downloads (not DMM links), max 5 items
+ * Fetch Real-Debrid download links for home page display
+ * Returns ONLY RD downloads (not DMM links), max 10 items
  */
 async function getRealDebridDownloads(config) {
     try {
@@ -303,8 +305,8 @@ async function getRealDebridDownloads(config) {
             if (!seenIds.has(download.id)) {
                 seenIds.add(download.id);
                 uniqueDownloads.push(download);
-                // Stop after collecting 5 unique items
-                if (uniqueDownloads.length >= 5) break;
+                // Stop after collecting 10 unique items
+                if (uniqueDownloads.length >= 10) break;
             }
         }
 
@@ -440,6 +442,7 @@ async function processSelectedFile(c, torrentId, fileId, userIP = null) {
 
 app.get('/', async (c) => {
     const config = c.get('config');
+    const hostname = new URL(c.req.url).origin;
 
     // Check for 'add' query parameter to auto-add magnet/infohash
     const magnetOrHash = c.req.query('add');
@@ -453,17 +456,17 @@ app.get('/', async (c) => {
             // Fetch RD downloads only for "Most Recent Download Links"
             const rdDownloads = await getRealDebridDownloads(config);
             const castedLinks = await getCastedLinks(config);
-            return c.html(getHomePage(`Failed to cast: ${err.message}`, null, rdDownloads, castedLinks));
+            return c.html(getHomePage(`Failed to cast: ${err.message}`, null, rdDownloads, castedLinks, hostname));
         }
     }
 
-    // Fetch Real-Debrid downloads only for "Most Recent Download Links"
+    // Fetch Real-Debrid download links only for "Most Recent Download Links"
     const rdDownloads = await getRealDebridDownloads(config);
 
     // Get casted links from DMM API for "Most Recent Casted Links"
     const castedLinks = await getCastedLinks(config);
 
-    return c.html(getHomePage(null, null, rdDownloads, castedLinks));
+    return c.html(getHomePage(null, null, rdDownloads, castedLinks, hostname));
 });
 
 app.get('/add', (c) => {
@@ -611,7 +614,11 @@ app.all('/webdav', async (c) => {
     return c.redirect('/webdav/', 301);
 });
 
-async function getWebDAVFiles(c) {
+/**
+ * Get Real-Debrid download links as WebDAV files
+ * Returns .strm files for RD downloads only
+ */
+async function getRealDebridWebDAVFiles(c) {
     const config = c.get('config');
     try {
         // Fetch 20 downloads to account for potential duplicates
@@ -621,24 +628,17 @@ async function getWebDAVFiles(c) {
         // Deduplicate by ID, keeping only the most recent occurrence
         const seenIds = new Set();
         const uniqueDownloads = [];
-        console.log(`[DEBUG] Total RD downloads fetched: ${sortedDownloads.length}`);
         for (const download of sortedDownloads) {
-            console.log(`[DEBUG] Checking RD download: id=${download.id}, filename=${download.filename}`);
             if (!seenIds.has(download.id)) {
                 seenIds.add(download.id);
                 uniqueDownloads.push(download);
-                console.log(`[DEBUG] Added to uniqueDownloads (count: ${uniqueDownloads.length})`);
-                // Stop after collecting 5 unique items (matches home page limit)
-                if (uniqueDownloads.length >= 5) break;
-            } else {
-                console.log(`[DEBUG] Skipped duplicate ID: ${download.id}`);
+                // Limit to 10 items for WebDAV
+                if (uniqueDownloads.length >= 10) break;
             }
         }
-        console.log(`[DEBUG] Final uniqueDownloads count: ${uniqueDownloads.length}`);
 
-        const filesMap = new Map(); // Map filename -> file object (keeps most recent)
-
-        // Add Real-Debrid downloads
+        // Deduplicate by filename, keeping most recent
+        const filesMap = new Map();
         for (const download of uniqueDownloads) {
             const strmUrl = download.download;
             const filename = `${download.filename}.strm`;
@@ -654,28 +654,42 @@ async function getWebDAVFiles(c) {
                 originalFilename: download.filename,
                 filesize: download.filesize || 0,
                 downloadUrl: download.download,
-                source: 'RD'
             };
 
-            // Check if we already have this filename
             const existing = filesMap.get(filename);
             if (existing) {
-                // Keep the most recent one
                 if (modified > existing.modifiedTimestamp) {
-                    console.log(`[RD] Replacing older file: ${filename} (${new Date(existing.modified).toISOString()} -> ${new Date(download.generated).toISOString()})`);
                     filesMap.set(filename, fileObj);
-                } else {
-                    console.log(`[RD] Skipping older duplicate: ${filename}`);
                 }
             } else {
-                console.log(`[RD] Adding: ${filename} -> ${strmUrl.substring(0, 50)}...`);
                 filesMap.set(filename, fileObj);
             }
         }
 
-        // Add Casted Links from DMM API
+        // Convert map to array and remove temporary timestamp field
+        const files = Array.from(filesMap.values()).map(file => {
+            const { modifiedTimestamp, ...cleanFile } = file;
+            return cleanFile;
+        });
+
+        return files;
+    } catch (error) {
+        console.error('Error in getRealDebridWebDAVFiles:', error.message, error.stack);
+        return [];
+    }
+}
+
+/**
+ * Get DMM casted links as WebDAV files
+ * Returns .strm files for DMM Cast only
+ */
+async function getDMMCastWebDAVFiles(c) {
+    const config = c.get('config');
+    try {
         const castedLinks = await getCastedLinks(config);
-        console.log(`[DMM] Found ${castedLinks.length} casted links`);
+
+        // Deduplicate by filename, keeping most recent
+        const filesMap = new Map();
         for (const link of castedLinks) {
             const strmUrl = link.url;
             const filename = `${link.filename}.strm`;
@@ -691,40 +705,34 @@ async function getWebDAVFiles(c) {
                 originalFilename: link.filename,
                 filesize: link.sizeGB * 1024 * 1024 * 1024,
                 downloadUrl: link.url,
-                source: 'DMM'
             };
 
-            // Check if we already have this filename
             const existing = filesMap.get(filename);
             if (existing) {
-                // Keep the most recent one
                 if (modified > existing.modifiedTimestamp) {
-                    console.log(`[DMM] Replacing older file: ${filename} (${new Date(existing.modified).toISOString()} -> ${new Date(link.updatedAt).toISOString()})`);
                     filesMap.set(filename, fileObj);
-                } else {
-                    console.log(`[DMM] Skipping older duplicate: ${filename}`);
                 }
             } else {
-                console.log(`[DMM] Adding: ${filename} -> ${strmUrl.substring(0, 50)}...`);
                 filesMap.set(filename, fileObj);
             }
         }
 
         // Convert map to array and remove temporary timestamp field
         const files = Array.from(filesMap.values()).map(file => {
-            const { modifiedTimestamp, source, ...cleanFile } = file;
+            const { modifiedTimestamp, ...cleanFile } = file;
             return cleanFile;
         });
 
         return files;
     } catch (error) {
-        console.error('Error in getWebDAVFiles:', error.message, error.stack);
+        console.error('Error in getDMMCastWebDAVFiles:', error.message, error.stack);
         return [];
     }
 }
 
-app.on(['PROPFIND'], '/webdav/', async (c) => {
-    const files = await getWebDAVFiles(c);
+// PROPFIND /webdav/downloads/ - WebDAV endpoint for Real-Debrid download links
+app.on(['PROPFIND'], '/webdav/downloads/', async (c) => {
+    const files = await getRealDebridWebDAVFiles(c);
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
     const requestPath = requestUrl.pathname;
@@ -733,7 +741,7 @@ app.on(['PROPFIND'], '/webdav/', async (c) => {
     const staticFile = {
         name: 'favorite-atv.png',
         size: 20824,
-        modified: '2024-10-23T00:00:00.000Z', // Static date to avoid cache invalidation
+        modified: '2024-10-23T00:00:00.000Z',
         contentType: 'image/png'
     };
 
@@ -773,21 +781,77 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
     return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 });
 
-app.get('/webdav/', async (c) => {
-    const files = await getWebDAVFiles(c);
+// PROPFIND /webdav/dmmcast/ - WebDAV endpoint for DMM Cast
+app.on(['PROPFIND'], '/webdav/dmmcast/', async (c) => {
+    const files = await getDMMCastWebDAVFiles(c);
+    const depth = c.req.header('Depth') || '0';
+    const requestUrl = new URL(c.req.url);
+    const requestPath = requestUrl.pathname;
 
-    // Filter out specific metadata files from HTML listing
-    const excludedHtmlFiles = ['favorite.png', 'favorite-atv.png', 'folder.png'];
-    const visibleFiles = files.filter(file => !excludedHtmlFiles.includes(file.name));
+    // Add favorite-atv.png for Infuse (only in PROPFIND, not in HTML listing)
+    const staticFile = {
+        name: 'favorite-atv.png',
+        size: 20824,
+        modified: '2024-10-23T00:00:00.000Z',
+        contentType: 'image/png'
+    };
+
+    const allFiles = [...files, staticFile];
+
+    const responses = allFiles.map(file => `
+      <D:response>
+        <D:href>${requestPath}${file.name}</D:href>
+        <D:propstat>
+          <D:prop>
+            <D:resourcetype/>
+            <D:getcontentlength>${file.size}</D:getcontentlength>
+            <D:getlastmodified>${new Date(file.modified).toUTCString()}</D:getlastmodified>
+            <D:getcontenttype>${file.contentType}</D:getcontenttype>
+          </D:prop>
+          <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+      </D:response>`).join('');
+
+    const collectionResponse = `
+      <D:response>
+        <D:href>${requestPath}</D:href>
+        <D:propstat>
+          <D:prop>
+            <D:resourcetype><D:collection/></D:resourcetype>
+            <D:getlastmodified>${new Date().toUTCString()}</D:getlastmodified>
+          </D:prop>
+          <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+      </D:response>`;
+
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:">
+${depth !== '0' ? responses : ''}${collectionResponse}
+</D:multistatus>`;
+
+    return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+});
+
+// GET /webdav/ - HTML index showing both RD downloads and DMM cast (no WebDAV PROPFIND)
+app.get('/webdav/', async (c) => {
+    const rdFiles = await getRealDebridWebDAVFiles(c);
+    const dmmFiles = await getDMMCastWebDAVFiles(c);
+    const hostname = new URL(c.req.url).origin;
 
     const html = `<!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
     <meta charset="UTF-8">
     <title>WebDAV - Cast Magnet Link</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
+    <script>
+        // Support light and dark mode based on system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
 <body>
     <main class="container">
@@ -797,14 +861,31 @@ app.get('/webdav/', async (c) => {
                 <p>Available files for streaming</p>
             </header>
 
+            ${rdFiles && rdFiles.length > 0 ? `
             <div class="status-info">
-                <h3>WebDAV Files:</h3>
+                <h3>WebDAV: Downloads</h3>
+                <p><small>WebDAV: <code>${hostname}/webdav/downloads/</code></small><br />
+                   <small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
                 <ul>
-                    ${visibleFiles.map(file => `
-                    <li><a href="/webdav/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+                    ${rdFiles.map(file => `
+                    <li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
                     `).join('')}
                 </ul>
             </div>
+            ` : ''}
+
+            ${dmmFiles && dmmFiles.length > 0 ? `
+            <div class="status-info">
+                <h3>DMM Casted Links:</h3>
+                <p><small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small><br />
+                   <small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
+                <ul>
+                    ${dmmFiles.map(file => `
+                    <li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+                    `).join('')}
+                </ul>
+            </div>
+            ` : ''}
 
             <footer style="margin-top: 2rem; text-align: center;">
                 <small>
@@ -821,19 +902,153 @@ app.get('/webdav/', async (c) => {
     return c.html(html);
 });
 
-app.get('/webdav/:filename', async (c) => {
+// Redirect /webdav/downloads to /webdav/downloads/
+app.all('/webdav/downloads', async (c) => {
+    return c.redirect('/webdav/downloads/', 301);
+});
+
+// Redirect /webdav/dmmcast to /webdav/dmmcast/
+app.all('/webdav/dmmcast', async (c) => {
+    return c.redirect('/webdav/dmmcast/', 301);
+});
+
+// GET /webdav/downloads/ - HTML listing for Real-Debrid download links
+app.get('/webdav/downloads/', async (c) => {
+    const files = await getRealDebridWebDAVFiles(c);
+
+    const html = `<!DOCTYPE html>
+<html data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>Cast Magnet Link: Download Links</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+</head>
+<body>
+    <main class="container">
+        <article>
+            <header>
+                <h2>Download Links</h2>
+                <p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
+            </header>
+
+            <div class="status-info">
+                <h3>Available Files:</h3>
+                <ul>
+                    ${files.map(file => `
+                    <li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+                    `).join('')}
+                </ul>
+            </div>
+
+            <footer style="margin-top: 2rem; text-align: center;">
+                <small>
+                    <a href="/">Home</a> &middot;
+                    <a href="/add">Add Magnet Link</a> &middot;
+                    <a href="/webdav/">WebDAV Files</a>
+                </small>
+            </footer>
+        </article>
+    </main>
+</body>
+</html>`;
+    return c.html(html);
+});
+
+// GET /webdav/dmmcast/ - HTML listing for DMM Cast
+app.get('/webdav/dmmcast/', async (c) => {
+    const files = await getDMMCastWebDAVFiles(c);
+
+    const html = `<!DOCTYPE html>
+<html data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>DMM Casted Links - Cast Magnet Link</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/style.css?2025-12-11">
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+</head>
+<body>
+    <main class="container">
+        <article>
+            <header>
+                <h2>DMM Casted Links</h2>
+                <p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
+            </header>
+
+            <div class="status-info">
+                <h3>Available Files:</h3>
+                <ul>
+                    ${files.map(file => `
+                    <li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+                    `).join('')}
+                </ul>
+            </div>
+
+            <footer style="margin-top: 2rem; text-align: center;">
+                <small>
+                    <a href="/">Home</a> &middot;
+                    <a href="/add">Add Magnet Link</a> &middot;
+                    <a href="/webdav/">WebDAV Files</a>
+                </small>
+            </footer>
+        </article>
+    </main>
+</body>
+</html>`;
+    return c.html(html);
+});
+
+// GET /webdav/downloads/:filename - Serve .strm files from Real-Debrid download links
+app.get('/webdav/downloads/:filename', async (c) => {
     const { filename } = c.req.param();
-    const files = await getWebDAVFiles(c);
+    const files = await getRealDebridWebDAVFiles(c);
     const file = files.find(f => f.name === filename);
 
     if (!file) {
+        // Also check for static files (favorite-atv.png)
+        if (filename === 'favorite-atv.png') {
+            // Return 404 for now - static files handled by entry point middleware
+            return c.text('File not found', 404);
+        }
         return c.text('File not found', 404);
     }
-    
-    // This is a simplified GET. The original served static files too.
-    // The new implementation uses static asset handling in the entry points.
+
     if (filename.endsWith('.strm')) {
-        return c.text(file.content);
+        return c.text(file.content, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    }
+
+    return c.text('File type not supported for direct GET', 400);
+});
+
+// GET /webdav/dmmcast/:filename - Serve .strm files from DMM Cast
+app.get('/webdav/dmmcast/:filename', async (c) => {
+    const { filename } = c.req.param();
+    const files = await getDMMCastWebDAVFiles(c);
+    const file = files.find(f => f.name === filename);
+
+    if (!file) {
+        // Also check for static files (favorite-atv.png)
+        if (filename === 'favorite-atv.png') {
+            // Return 404 for now - static files handled by entry point middleware
+            return c.text('File not found', 404);
+        }
+        return c.text('File not found', 404);
+    }
+
+    if (filename.endsWith('.strm')) {
+        return c.text(file.content, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
     }
 
     return c.text('File type not supported for direct GET', 400);
