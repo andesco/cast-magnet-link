@@ -130,7 +130,7 @@ wrangler deploy
 
 Run the service on a traditional VPS or server.
 
-[! warning]
+> [!NOTE]
 > Cloudlfare Worker deployment is recommended and used by the developer.
 
 **Manual Deployment**:
@@ -143,16 +143,17 @@ Run the service on a traditional VPS or server.
 
 4. `npm run node:start`
 
-5. To run as a persistent background service, use the provided `cast-magnet-link.service.example` as a template for a **`systemd`** service file.
-   - Copy the example file to `/etc/systemd/system/cast-magnet-link.service`.
-   - Edit the new file, adjusting `User`, `WorkingDirectory`, and `ExecStart` as needed.
-   
-   - Enable and start the service:
-   
-   ```bash
-   sudo systemctl enable cast-magnet-link.service
-   sudo systemctl start cast-magnet-link.service
-   ```
+**System Service:**
+
+To run as a persistent background service, use the provided `cast-magnet-link.service.example` as a template for a **`systemd`** service file.
+
+  - Copy the example file to: <nobr>`/etc/systemd/system/cast-magnet-link.service`</nobr>
+  - Edit the new file, adjusting these as needed: <nobr>`User` `WorkingDirectory` `ExecStart`</nobr>
+  - Enable and start the new service:
+    ```bash
+    sudo systemctl enable cast-magnet-link.service
+    sudo systemctl start cast-magnet-link.service
+    ```
 
 ### Health Check Endpoint
 
