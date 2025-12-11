@@ -86,7 +86,7 @@ function getHomePage(error = null, success = null, downloads = []) {
 
             <form method="POST" action="/add">
                 <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-                <button type="submit">Add Torrent</button>
+                <button type="submit">Add Magnet Link</button>
             </form>
 
             <footer style="margin-top: 2rem; text-align: center;">
@@ -132,7 +132,7 @@ function getAddPage(error = null, success = null, torrentInfo = null) {
 
             <form method="POST" action="/add">
                 <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-                <button type="submit">Add Torrent</button>
+                <button type="submit">Add Magnet Link</button>
             </form>
 
             <footer style="margin-top: 2rem; text-align: center;">
