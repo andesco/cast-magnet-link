@@ -6,8 +6,6 @@
   "main": "src/server.js",
   "scripts": {
     "node:start": "node src/server.js",
-    "node:deploy:local": "node scripts/deploy-localhost.cjs",
-    "node:deploy:remote": "./scripts/deploy-remote.sh",
     "node:dev": "nodemon src/server.js",
     "worker:deploy": "wrangler deploy --config wrangler.local.toml",
     "worker:dev": "wrangler dev --config wrangler.local.toml",
