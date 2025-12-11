@@ -73,6 +73,12 @@ Cast Magnet Link is:
   - generates and caches an unrestricted download link
   - removes the magnet link from your library (while keeping the download link)
 
+> [!NOTE]
+> A browser extension like [StopTheMadness Pro](https://apple.co/4e0lkPG) that supports [URL redirect rules](https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html) can redirect magnet links to this page and automatically create a new download link:
+>
+> URL matching pattern: `/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/`
+> replacement pattern: `https://zurgproxy.andrewe.dev/add/$1`
+
 ### WebDAV
 
 Add the WebDAV endpoint to your media player:

@@ -355,14 +355,16 @@ app.get('/add', (c) => {
 			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
 			<button type="submit">Add Torrent</button>
 		</form>
-        
         <small>
-            <p>
-            <p style="margin-top: 2rem;">A browser extension like <a href="https://apple.co/4e0lkPG">StopTheMadness Pro</a> that supports <a href="https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html">URL redirect rules</a> can redirect magnet links to this page and automatically create a new download link:</p>
+            <p style="margin-top: 2rem;">Redirecting a magnet link to this page will automatically create a new download link:</p>
+            <p>magnet link: <code>magnet:\?xt=urn:btih:{infohash}</code>
+            <br />automatically add magnet link: <code>https://cast-magnet-link.dev/add/{magnet link}</code>
+            <br />automatically add infohash: <code>https://cast-magnet-link.dev/add/{info hash}</code></p>
+
+            <p style="margin-top: 2rem;">A browser extension like <a href="https://apple.co/4e0lkPG">StopTheMadness Pro</a> that supports <a href="https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html">URL redirect rules</a> can redirect magnet links to this page:</p>
             <p>URL matching pattern: <code>/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/</code>
             <br />replacement pattern: <code>https://cast-magnet-link.dev/add/$1</code></p>
         </small>
-
 		${footer()}
 	`;
     return c.html(layout('Add Magnet', content));
