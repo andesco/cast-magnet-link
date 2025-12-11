@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { getConfig } from './config.worker.js';
 import { getEnv } from './env.js';
-import storage from './storage.js';
 import * as rdClient from './rdClient.js';
 import { getPublicIP } from './ipUtils.js';
 
@@ -44,7 +43,7 @@ app.use('*', async (c, next) => {
 
 // --- HTML Templates ---
 
-function getHomePage(error = null, success = null, downloads = []) {
+function getHomePage(error = null, success = null, downloads = [], castedLinks = []) {
   return `<!DOCTYPE html>
 <html data-theme="light">
 <head>
@@ -76,7 +75,8 @@ function getHomePage(error = null, success = null, downloads = []) {
 
             ${downloads && downloads.length > 0 ? `
             <div class="status-info">
-                <h3>Currently Casted Media:</h3>
+                <h3>Most Recent Download Links:</h3>
+                <p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
                 <ul>
                     ${downloads.map(d => `
                     <li><a href="${d.downloadUrl}" target="_blank">${d.filename}</a> <small><code>${formatBytes(d.filesize || 0)}</code></small></li>
@@ -85,9 +85,21 @@ function getHomePage(error = null, success = null, downloads = []) {
             </div>
             ` : ''}
 
+            ${castedLinks && castedLinks.length > 0 ? `
+            <div class="status-info">
+                <h3>Most Recent Casted Links:</h3>
+                <p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
+                <ul>
+                    ${castedLinks.map(link => `
+                    <li><a href="${link.url}" target="_blank">${link.filename}</a> <small><code>${link.sizeGB} GB</code></small></li>
+                    `).join('')}
+                </ul>
+            </div>
+            ` : ''}
+
             <form method="POST" action="/add">
                 <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-                <button type="submit">Add Torrent</button>
+                <button type="submit">Add Magnet Link</button>
             </form>
 
             <footer style="margin-top: 2rem; text-align: center;">
@@ -215,22 +227,101 @@ function formatBytes(bytes) {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
+/**
+ * Fetch casted links from Debrid Media Manager API
+ * Returns items from last 7 days, sorted by most recent
+ */
+async function getCastedLinks(config) {
+    try {
+        const response = await fetch(`https://debridmediamanager.com/api/stremio/links?token=${config.rdAccessToken}`);
+        if (!response.ok) {
+            console.error('Failed to fetch casted links:', response.statusText);
+            return [];
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+            console.error('Invalid response from DMM API');
+            return [];
+        }
+
+        // Filter for items from last 7 days
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const filteredLinks = data.filter(link => {
+            if (!link.updatedAt) return false;
+            const updatedTime = new Date(link.updatedAt).getTime();
+            return updatedTime >= sevenDaysAgo;
+        });
+
+        // Sort by updatedAt (most recent first)
+        filteredLinks.sort((a, b) => {
+            const timeA = new Date(a.updatedAt).getTime();
+            const timeB = new Date(b.updatedAt).getTime();
+            return timeB - timeA;
+        });
+
+        // Format for display
+        return filteredLinks.map(link => {
+            // Extract filename from URL path if not provided
+            let filename = link.filename;
+            if (!filename || filename === 'Unknown') {
+                try {
+                    const urlPath = new URL(link.url).pathname;
+                    filename = decodeURIComponent(urlPath.split('/').pop()) || 'Unknown';
+                } catch (e) {
+                    filename = 'Unknown';
+                }
+            }
+
+            return {
+                url: link.url || '#',
+                filename: filename,
+                sizeGB: link.size ? Math.round(link.size / 1024 * 100) / 100 : 0, // Convert MB to GB
+                updatedAt: link.updatedAt,
+            };
+        });
+    } catch (error) {
+        console.error('Error fetching casted links:', error.message);
+        return [];
+    }
+}
+
+/**
+ * Fetch Real-Debrid downloads for home page display
+ * Returns ONLY RD downloads (not DMM links), max 5 items
+ */
+async function getRealDebridDownloads(config) {
+    try {
+        // Fetch 20 downloads to account for potential duplicates
+        const downloads = await rdClient.getDownloadsList(config, 20);
+        const sortedDownloads = (downloads || []).sort((a, b) => new Date(b.generated) - new Date(a.generated));
+
+        // Deduplicate by ID, keeping only the most recent occurrence
+        const seenIds = new Set();
+        const uniqueDownloads = [];
+        for (const download of sortedDownloads) {
+            if (!seenIds.has(download.id)) {
+                seenIds.add(download.id);
+                uniqueDownloads.push(download);
+                // Stop after collecting 5 unique items
+                if (uniqueDownloads.length >= 5) break;
+            }
+        }
+
+        // Format for home page display
+        return uniqueDownloads.map(download => ({
+            filename: download.filename,
+            filesize: download.filesize || 0,
+            downloadUrl: download.download,
+        }));
+    } catch (error) {
+        console.error('Error fetching RD downloads:', error.message);
+        return [];
+    }
+}
+
 
 // --- Core Logic Helpers ---
-
-function extractLinkId(rdLink) {
-    if (!rdLink) return null;
-    try {
-        const url = new URL(rdLink);
-        const pathParts = url.pathname.split('/');
-        if (url.hostname === 'real-debrid.com' && pathParts[1] === 'd' && pathParts[2]) {
-            return pathParts[2];
-        }
-    } catch (error) {
-        console.error('Error parsing RD link:', error.message);
-    }
-    return null;
-}
 
 function getAutoSelectFile(files) {
     if (!files || files.length === 0) return null;
@@ -292,11 +383,6 @@ async function processMagnet(c, magnetOrHash, userIP = null) {
     const filename = selectedFile ? (selectedFile.path || selectedFile.name) : torrentInfo.filename;
     const size = selectedFile ? (selectedFile.bytes || selectedFile.size) : torrentInfo.bytes;
 
-    const linkId = extractLinkId(originalLink);
-    if (linkId) {
-        await storage.addStrmEntry(c.env, linkId, originalLink, unrestrictedUrl, filename, true, size);
-    }
-
     await rdClient.deleteTorrent(config, torrentInfo.id);
 
     return c.html(getAddPage(null, 'Media ready to cast', {
@@ -340,11 +426,6 @@ async function processSelectedFile(c, torrentId, fileId, userIP = null) {
     const filename = selectedFile ? (selectedFile.path || selectedFile.name) : updatedInfo.filename;
     const size = selectedFile ? (selectedFile.bytes || selectedFile.size) : updatedInfo.bytes;
 
-    const linkId = extractLinkId(originalLink);
-    if (linkId) {
-        await storage.addStrmEntry(c.env, linkId, originalLink, unrestrictedUrl, filename, true, size);
-    }
-
     await rdClient.deleteTorrent(config, torrentId);
 
     return c.html(getAddPage(null, 'Media ready to cast', {
@@ -358,6 +439,8 @@ async function processSelectedFile(c, torrentId, fileId, userIP = null) {
 // --- Routes ---
 
 app.get('/', async (c) => {
+    const config = c.get('config');
+
     // Check for 'add' query parameter to auto-add magnet/infohash
     const magnetOrHash = c.req.query('add');
     if (magnetOrHash) {
@@ -367,27 +450,20 @@ app.get('/', async (c) => {
             return await processMagnet(c, magnetOrHash, userIP);
         } catch (err) {
             console.error('Error auto-adding magnet:', err.message);
-            const files = await getWebDAVFiles(c);
-            const downloadsForHomePage = files.map(file => ({
-                filename: file.originalFilename,
-                filesize: file.filesize,
-                downloadUrl: file.downloadUrl,
-            }));
-            return c.html(getHomePage(`Failed to cast: ${err.message}`, null, downloadsForHomePage));
+            // Fetch RD downloads only for "Most Recent Download Links"
+            const rdDownloads = await getRealDebridDownloads(config);
+            const castedLinks = await getCastedLinks(config);
+            return c.html(getHomePage(`Failed to cast: ${err.message}`, null, rdDownloads, castedLinks));
         }
     }
 
-    // Get the unified list of files
-    const files = await getWebDAVFiles(c);
+    // Fetch Real-Debrid downloads only for "Most Recent Download Links"
+    const rdDownloads = await getRealDebridDownloads(config);
 
-    // Adapt the file list for the home page template
-    const downloadsForHomePage = files.map(file => ({
-        filename: file.originalFilename,
-        filesize: file.filesize,
-        downloadUrl: file.downloadUrl, // Include direct download link
-    }));
+    // Get casted links from DMM API for "Most Recent Casted Links"
+    const castedLinks = await getCastedLinks(config);
 
-    return c.html(getHomePage(null, null, downloadsForHomePage));
+    return c.html(getHomePage(null, null, rdDownloads, castedLinks));
 });
 
 app.get('/add', (c) => {
@@ -545,49 +621,100 @@ async function getWebDAVFiles(c) {
         // Deduplicate by ID, keeping only the most recent occurrence
         const seenIds = new Set();
         const uniqueDownloads = [];
+        console.log(`[DEBUG] Total RD downloads fetched: ${sortedDownloads.length}`);
         for (const download of sortedDownloads) {
+            console.log(`[DEBUG] Checking RD download: id=${download.id}, filename=${download.filename}`);
             if (!seenIds.has(download.id)) {
                 seenIds.add(download.id);
                 uniqueDownloads.push(download);
-                // Stop after collecting 5 unique items
+                console.log(`[DEBUG] Added to uniqueDownloads (count: ${uniqueDownloads.length})`);
+                // Stop after collecting 5 unique items (matches home page limit)
                 if (uniqueDownloads.length >= 5) break;
+            } else {
+                console.log(`[DEBUG] Skipped duplicate ID: ${download.id}`);
             }
         }
+        console.log(`[DEBUG] Final uniqueDownloads count: ${uniqueDownloads.length}`);
 
-        const files = [];
+        const filesMap = new Map(); // Map filename -> file object (keeps most recent)
+
+        // Add Real-Debrid downloads
         for (const download of uniqueDownloads) {
-            const linkId = extractLinkId(download.link);
-            if (!linkId) continue;
-
-            // Cache entry for later access via /strm/:linkId
-            await storage.addStrmEntry(c.env, linkId, download.link, download.download, download.filename, false, download.filesize);
-
-            // Build .strm file URL - auto-detect hostname from request if PUBLIC_URL not explicitly set
-            let baseUrl = config.publicUrl;
-            if (!baseUrl || baseUrl === 'http://localhost:3000' || baseUrl.includes('localhost')) {
-                // Auto-detect from request
-                const requestUrl = new URL(c.req.url);
-                baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
-            }
-
-            const urlObj = new URL(baseUrl);
-            urlObj.username = config.webdavUsername;
-            urlObj.password = config.webdavPassword;
-            urlObj.pathname = `/strm/${linkId}`;
-            const strmUrl = urlObj.toString();
+            const strmUrl = download.download;
             const filename = `${download.filename}.strm`;
+            const modified = new Date(download.generated).getTime();
 
-            files.push({
+            const fileObj = {
                 name: filename,
                 content: strmUrl,
                 size: strmUrl.length,
                 modified: download.generated,
+                modifiedTimestamp: modified,
                 contentType: 'text/plain; charset=utf-8',
                 originalFilename: download.filename,
                 filesize: download.filesize || 0,
-                downloadUrl: download.download, // Real Debrid direct download link
-            });
+                downloadUrl: download.download,
+                source: 'RD'
+            };
+
+            // Check if we already have this filename
+            const existing = filesMap.get(filename);
+            if (existing) {
+                // Keep the most recent one
+                if (modified > existing.modifiedTimestamp) {
+                    console.log(`[RD] Replacing older file: ${filename} (${new Date(existing.modified).toISOString()} -> ${new Date(download.generated).toISOString()})`);
+                    filesMap.set(filename, fileObj);
+                } else {
+                    console.log(`[RD] Skipping older duplicate: ${filename}`);
+                }
+            } else {
+                console.log(`[RD] Adding: ${filename} -> ${strmUrl.substring(0, 50)}...`);
+                filesMap.set(filename, fileObj);
+            }
         }
+
+        // Add Casted Links from DMM API
+        const castedLinks = await getCastedLinks(config);
+        console.log(`[DMM] Found ${castedLinks.length} casted links`);
+        for (const link of castedLinks) {
+            const strmUrl = link.url;
+            const filename = `${link.filename}.strm`;
+            const modified = new Date(link.updatedAt).getTime();
+
+            const fileObj = {
+                name: filename,
+                content: strmUrl,
+                size: strmUrl.length,
+                modified: link.updatedAt,
+                modifiedTimestamp: modified,
+                contentType: 'text/plain; charset=utf-8',
+                originalFilename: link.filename,
+                filesize: link.sizeGB * 1024 * 1024 * 1024,
+                downloadUrl: link.url,
+                source: 'DMM'
+            };
+
+            // Check if we already have this filename
+            const existing = filesMap.get(filename);
+            if (existing) {
+                // Keep the most recent one
+                if (modified > existing.modifiedTimestamp) {
+                    console.log(`[DMM] Replacing older file: ${filename} (${new Date(existing.modified).toISOString()} -> ${new Date(link.updatedAt).toISOString()})`);
+                    filesMap.set(filename, fileObj);
+                } else {
+                    console.log(`[DMM] Skipping older duplicate: ${filename}`);
+                }
+            } else {
+                console.log(`[DMM] Adding: ${filename} -> ${strmUrl.substring(0, 50)}...`);
+                filesMap.set(filename, fileObj);
+            }
+        }
+
+        // Convert map to array and remove temporary timestamp field
+        const files = Array.from(filesMap.values()).map(file => {
+            const { modifiedTimestamp, source, ...cleanFile } = file;
+            return cleanFile;
+        });
 
         return files;
     } catch (error) {
@@ -711,37 +838,5 @@ app.get('/webdav/:filename', async (c) => {
 
     return c.text('File type not supported for direct GET', 400);
 });
-
-app.get('/strm/:linkId', async (c) => {
-    const { linkId } = c.req.param();
-    const config = c.get('config');
-    const cacheEntry = await storage.getStrmEntry(c.env, linkId);
-
-    if (!cacheEntry) {
-        return c.text('Download link not found in cache', 404);
-    }
-
-    const generatedAt = new Date(cacheEntry.generatedAt).getTime();
-    const age = Date.now() - generatedAt;
-    const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
-
-    if (age > FORTY_EIGHT_HOURS_MS) {
-        console.log(`Refreshing old unrestricted URL for: ${cacheEntry.filename}`);
-        try {
-            // Extract user IP for RD geolocation
-            const userIP = getPublicIP(c);
-            const newUnrestrictedUrl = await rdClient.unrestrictLink(config, cacheEntry.originalLink, userIP);
-            await storage.updateStrmUrl(c.env, linkId, newUnrestrictedUrl);
-            return c.redirect(newUnrestrictedUrl, 302);
-        } catch (error) {
-            console.error('Error refreshing unrestricted URL:', error.message);
-            // Continue with old URL as fallback
-            return c.redirect(cacheEntry.unrestrictedUrl, 302);
-        }
-    }
-
-    return c.redirect(cacheEntry.unrestrictedUrl, 302);
-});
-
 
 export default app;
