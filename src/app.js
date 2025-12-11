@@ -41,193 +41,7 @@ app.use('*', async (c, next) => {
 });
 
 
-// --- HTML Templates ---
-
-function getHomePage(error = null, success = null, downloads = [], castedLinks = [], hostname = '') {
-  return `<!DOCTYPE html>
-<html data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Cast Magnet Link</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css?2025-12-11">
-    <script>
-        // Support light and dark mode based on system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
-</head>
-<body>
-    <main class="container">
-        <article>
-            <header>
-                ${error ? `<span class="status-badge error">ERROR</span>` : ''}
-                ${success ? `<span class="status-badge success">SUCCESS</span>` : ''}
-                <h2>${error ? 'Error' : success ? success : 'Cast Magnet Link'}</h2>
-                ${!error && !success ? '<p>Enter a magnet link or infohash to add to WebDAV</p>' : ''}
-            </header>
-
-            ${error ? `
-            <code style="display: block; white-space: pre-wrap; padding: 0.75rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius); margin-bottom: 1rem;">${error}</code>
-            ` : ''}
-
-            ${downloads && downloads.length > 0 ? `
-            <div class="status-info">
-                <h3>Most Recent Download Links:</h3>
-                <p><small>WebDAV: <code>${hostname}/webdav/downloads/</code></small><br />
-                   <small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
-                <ul>
-                    ${downloads.map(d => `
-                    <li><a href="${d.downloadUrl}" target="_blank">${d.filename}</a> <small><code>${formatBytes(d.filesize || 0)}</code></small></li>
-                    `).join('')}
-                </ul>
-            </div>
-            ` : ''}
-
-            ${castedLinks && castedLinks.length > 0 ? `
-            <div class="status-info">
-                <h3>Most Recent Casted Links:</h3>
-                <p><small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small><br />
-                   <small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
-                <ul>
-                    ${castedLinks.map(link => `
-                    <li><a href="${link.url}" target="_blank">${link.filename}</a> <small><code>${link.sizeGB} GB</code></small></li>
-                    `).join('')}
-                </ul>
-            </div>
-            ` : ''}
-
-            <form method="POST" action="/add">
-                <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-                <button type="submit">Add Magnet Link</button>
-            </form>
-
-            <footer style="margin-top: 2rem; text-align: center;">
-                <small>
-                    <a href="/">Home</a> &middot;
-                    <a href="/add">Add Magnet Link</a> &middot;
-                    <a href="/webdav/">WebDAV Files</a>
-                </small>
-            </footer>
-
-        </article>
-    </main>
-</body>
-</html>`;
-}
-
-function getAddPage(error = null, success = null, torrentInfo = null) {
-    return `<!DOCTYPE html>
-<html data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Add Magnet - Cast Magnet Link</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css?2025-12-11">
-    <script>
-        // Support light and dark mode based on system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
-</head>
-<body>
-    <main class="container">
-        <article>
-            <header>
-                ${error ? `<span class="status-badge error">ERROR</span>` : ''}
-                ${success ? `<span class="status-badge success">SUCCESS</span>` : ''}
-                <h2>${error ? 'Error' : success || 'Cast Magnet Link: Add'}</h2>
-                ${!error && !success ? '<p>Enter a magnet link or infohash</p>' : ''}
-            </header>
-
-            ${error ? `
-            <code style="display: block; white-space: pre-wrap; padding: 0.75rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius); margin-bottom: 1rem;">${error}</code>
-            ` : ''}
-
-            ${torrentInfo ? `
-            <div>
-                <p>Infohash: <code>${torrentInfo.hash}</code></p>
-                <p>File: ${torrentInfo.filename || torrentInfo.hash.substring(0, 8) + '...'} <small><code>${formatBytes(torrentInfo.bytes || 0)}</code></small>
-            </div>
-            ` : ''}
-
-            <form method="POST" action="/add">
-                <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-                <button type="submit">Add Torrent</button>
-            </form>
-
-            <footer style="margin-top: 2rem; text-align: center;">
-                <small>
-                    <a href="/">Home</a> &middot;
-                    <a href="/add">Add Magnet Link</a> &middot;
-                    <a href="/webdav/">WebDAV Files</a>
-                </small>
-            </footer>
-
-        </article>
-    </main>
-</body>
-</html>`;
-}
-
-function getSelectFilePage(files, torrentId, title) {
-    return `<!DOCTYPE html>
-<html data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Select File - Cast Magnet Link</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css?2025-12-11">
-    <script>
-        // Support light and dark mode based on system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
-</head>
-<body>
-    <main class="container">
-        <article>
-            <header>
-                <h2>Select File to Cast</h2>
-                <p>${title || 'Multiple files found'}</p>
-            </header>
-
-            <form method="POST" action="/add/select">
-                <input type="hidden" name="torrentId" value="${torrentId}">
-                ${files.map((file, idx) => `
-                <label>
-                    <input type="radio" name="fileId" value="${file.id}" ${idx === 0 ? 'checked' : ''} required>
-                    ${file.name || file.path} <code>${formatBytes(file.size || file.bytes || 0)}</code>
-                </label>
-                `).join('')}
-                <button type="submit" style="margin-top: 1rem;">Cast Selected File</button>
-            </form>
-        </article>
-    </main>
-</body>
-</html>`;
-}
-
-function formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    // Always show MB as GB for better readability
-    if (i === 2) { // MB
-        const gb = bytes / Math.pow(k, 3);
-        return Math.round(gb * 100) / 100 + ' GB';
-    }
-
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-}
+import { layout, statusHeader, pageHeader, footer, formatBytes } from './html.js';
 
 /**
  * Fetch casted links from Debrid Media Manager API
@@ -369,7 +183,20 @@ async function processMagnet(c, magnetOrHash, userIP = null) {
             return processSelectedFile(c, torrentId, fileToSelect.id.toString(), userIP);
         }
         else {
-            return c.html(getSelectFilePage(torrentInfo.files, torrentId, torrentInfo.filename));
+			const content = `
+				${pageHeader('Select File to Cast', torrentInfo.filename || 'Multiple files found')}
+				<form method="POST" action="/add/select">
+					<input type="hidden" name="torrentId" value="${torrentId}">
+					${torrentInfo.files.map((file, idx) => `
+					<label>
+						<input type="radio" name="fileId" value="${file.id}" ${idx === 0 ? 'checked' : ''} required>
+						${file.name || file.path} <code>${formatBytes(file.size || file.bytes || 0)}</code>
+					</label>
+					`).join('')}
+					<button type="submit" style="margin-top: 1rem;">Cast Selected File</button>
+				</form>
+			`;
+            return c.html(layout('Select File', content));
         }
     }
 
@@ -386,12 +213,19 @@ async function processMagnet(c, magnetOrHash, userIP = null) {
     const size = selectedFile ? (selectedFile.bytes || selectedFile.size) : torrentInfo.bytes;
 
     await rdClient.deleteTorrent(config, torrentInfo.id);
-
-    return c.html(getAddPage(null, 'Media ready to cast', {
-        hash: torrentInfo.hash,
-        filename: filename,
-        bytes: size,
-    }));
+	const content = `
+		${statusHeader(null, 'Media ready to cast')}
+		<div>
+			<p>Infohash: <code>${torrentInfo.hash}</code></p>
+			<p>File: ${filename || torrentInfo.hash.substring(0, 8) + '...'} <small><code>${formatBytes(size || 0)}</code></small>
+		</div>
+		<form method="POST" action="/add">
+			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+			<button type="submit">Add Torrent</button>
+		</form>
+		${footer()}
+	`;
+	return c.html(layout('Add Magnet', content));
 }
 
 /**
@@ -430,11 +264,19 @@ async function processSelectedFile(c, torrentId, fileId, userIP = null) {
 
     await rdClient.deleteTorrent(config, torrentId);
 
-    return c.html(getAddPage(null, 'Media ready to cast', {
-        hash: updatedInfo.hash,
-        filename: filename,
-        bytes: size,
-    }));
+	const content = `
+		${statusHeader(null, 'Media ready to cast')}
+		<div>
+			<p>Infohash: <code>${updatedInfo.hash}</code></p>
+			<p>File: ${filename || updatedInfo.hash.substring(0, 8) + '...'} <small><code>${formatBytes(size || 0)}</code></small>
+		</div>
+		<form method="POST" action="/add">
+			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+			<button type="submit">Add Torrent</button>
+		</form>
+		${footer()}
+	`;
+	return c.html(layout('Add Magnet', content));
 }
 
 
@@ -453,10 +295,15 @@ app.get('/', async (c) => {
             return await processMagnet(c, magnetOrHash, userIP);
         } catch (err) {
             console.error('Error auto-adding magnet:', err.message);
-            // Fetch RD downloads only for "Most Recent Download Links"
-            const rdDownloads = await getRealDebridDownloads(config);
-            const castedLinks = await getCastedLinks(config);
-            return c.html(getHomePage(`Failed to cast: ${err.message}`, null, rdDownloads, castedLinks, hostname));
+			const content = `
+				${statusHeader(`Failed to cast: ${err.message}`)}
+				<form method="POST" action="/add">
+					<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+					<button type="submit">Add Magnet Link</button>
+				</form>
+				${footer()}
+			`;
+			return c.html(layout('Error', content));
         }
     }
 
@@ -466,18 +313,73 @@ app.get('/', async (c) => {
     // Get casted links from DMM API for "Most Recent Casted Links"
     const castedLinks = await getCastedLinks(config);
 
-    return c.html(getHomePage(null, null, rdDownloads, castedLinks, hostname));
+	const content = `
+		${statusHeader()}
+		${rdDownloads && rdDownloads.length > 0 ? `
+		<div class="status-info">
+			<h3>Most Recent Download Links</h3>
+			<p><small>WebDAV: <code>${hostname}/webdav/downloads/</code></small><br />
+			   <small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
+			<ul>
+				${rdDownloads.map(d => `
+				<li><a href="${d.downloadUrl}" target="_blank">${d.filename}</a> <small><code>${formatBytes(d.filesize || 0)}</code></small></li>
+				`).join('')}
+			</ul>
+		</div>
+		` : ''}
+		${castedLinks && castedLinks.length > 0 ? `
+		<div class="status-info">
+			<h3>Most Recent Casted Links</h3>
+			<p><small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small><br />
+			   <small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
+			<ul>
+				${castedLinks.map(link => `
+				<li><a href="${link.url}" target="_blank">${link.filename}</a> <small><code>${link.sizeGB} GB</code></small></li>
+				`).join('')}
+			</ul>
+		</div>
+		` : ''}
+		<form method="POST" action="/add">
+			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+			<button type="submit">Add Magnet Link</button>
+		</form>
+		${footer()}
+	`;
+    return c.html(layout('Cast Magnet Link', content));
 });
 
 app.get('/add', (c) => {
-    return c.html(getAddPage());
+	const content = `
+		${statusHeader(null, null, 'Cast Magnet Link: Add', 'Enter a magnet link or infohash')}
+		<div id="redirect-rules"><h3><a href="#redirect-rules" aria-disabled="false" class="header-anchor-trigger">#</a><span>Redirect Rules</span></h3></div>
+		<p>Any browser extension that supports URL redirect rules can be used to redirect magnet links. For example:</p>
+		<p><strong>URL Matching Pattern:</strong></p>
+		<p><code>/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/</code></p>
+		<p><strong>Replacement Options:</strong></p>
+		<p><code>https://zurgproxy.andrewe.dev/add/$1</code></p>
+		<p><strong><a href="https://apple.co/4e0lkPG">StopTheMadness Pro</a></strong> is a powerful Safari browser extension that supports <a href="https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html">URL redirect rules</a>.</p>
+		<form method="POST" action="/add">
+			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+			<button type="submit">Add Torrent</button>
+		</form>
+		${footer()}
+	`;
+    return c.html(layout('Add Magnet', content));
 });
 
 app.post('/add', async (c) => {
     const body = await c.req.parseBody();
     const magnet = body.magnet;
     if (!magnet) {
-        return c.html(getAddPage('Please provide a magnet link or infohash'));
+		const content = `
+			${statusHeader('Please provide a magnet link or infohash')}
+			<form method="POST" action="/add">
+				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+				<button type="submit">Add Torrent</button>
+			</form>
+			${footer()}
+		`;
+		return c.html(layout('Error', content));
     }
     try {
         // Extract user IP for RD geolocation
@@ -485,7 +387,15 @@ app.post('/add', async (c) => {
         return await processMagnet(c, magnet, userIP);
     } catch (err) {
         console.error('Error adding magnet:', err.message);
-        return c.html(getAddPage(`Failed to cast: ${err.message}`));
+		const content = `
+			${statusHeader(`Failed to cast: ${err.message}`)}
+			<form method="POST" action="/add">
+				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+				<button type="submit">Add Torrent</button>
+			</form>
+			${footer()}
+		`;
+		return c.html(layout('Error', content));
     }
 });
 
@@ -493,7 +403,15 @@ app.post('/add/select', async (c) => {
     const body = await c.req.parseBody();
     const { torrentId, fileId } = body;
     if (!torrentId || !fileId) {
-        return c.html(getAddPage('Invalid file selection'));
+		const content = `
+			${statusHeader('Invalid file selection')}
+			<form method="POST" action="/add">
+				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+				<button type="submit">Add Torrent</button>
+			</form>
+			${footer()}
+		`;
+		return c.html(layout('Error', content));
     }
     try {
         // Extract user IP for RD geolocation
@@ -501,7 +419,15 @@ app.post('/add/select', async (c) => {
         return await processSelectedFile(c, torrentId, fileId, userIP);
     } catch (err) {
         console.error('Error selecting file:', err.message);
-        return c.html(getAddPage(`Failed to cast: ${err.message}`));
+		const content = `
+			${statusHeader(`Failed to cast: ${err.message}`)}
+			<form method="POST" action="/add">
+				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+				<button type="submit">Add Torrent</button>
+			</form>
+			${footer()}
+		`;
+		return c.html(layout('Error', content));
     }
 });
 
@@ -509,7 +435,15 @@ app.post('/add/select', async (c) => {
 app.get('/add/:magnetOrHash', async (c) => {
     const magnetOrHash = c.req.param('magnetOrHash');
     if (!magnetOrHash) {
-        return c.html(getAddPage('Please provide a magnet link or infohash'));
+		const content = `
+			${statusHeader('Please provide a magnet link or infohash')}
+			<form method="POST" action="/add">
+				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+				<button type="submit">Add Torrent</button>
+			</form>
+			${footer()}
+		`;
+		return c.html(layout('Error', content));
     }
     try {
         // Extract user IP for RD geolocation
@@ -517,84 +451,16 @@ app.get('/add/:magnetOrHash', async (c) => {
         return await processMagnet(c, decodeURIComponent(magnetOrHash), userIP);
     } catch (err) {
         console.error('Error adding magnet via URL path:', err.message);
-        return c.html(getAddPage(`Failed to cast: ${err.message}`));
+		const content = `
+			${statusHeader(`Failed to cast: ${err.message}`)}
+			<form method="POST" action="/add">
+				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+				<button type="submit">Add Torrent</button>
+			</form>
+			${footer()}
+		`;
+		return c.html(layout('Error', content));
     }
-});
-
-// Serve stylesheet
-app.get('/style.css', (c) => {
-    const css = `article {
-    margin-top: 2rem;
-}
-
-/* Status badge styles */
-.status-badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
-    color: white;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
-
-.status-badge.success {
-    background: #43a047;
-    background-color: #43a047;
-}
-
-.status-badge.warning {
-    background: #fb8c00;
-    background-color: #fb8c00;
-}
-
-.status-badge.error {
-    background: #e53935;
-    background-color: #e53935;
-}
-
-code {
-    font-weight: normal;
-}
-
-.status-info {
-    padding: 1rem;
-    border-radius: var(--pico-border-radius);
-    background: var(--pico-background-color);
-    margin-bottom: 1rem;
-}
-
-.status-info code {
-    font-size: 0.875rem;
-}
-
-.casted-list {
-    list-style: none;
-    padding: 0;
-    margin: 0.5rem 0;
-}
-
-.casted-list li {
-    margin-bottom: 0.5rem;
-}
-
-ul {
-    list-style-type: disc;
-    padding-left: 1.5rem;
-}
-
-ul li {
-    padding: 0.25rem 0;
-}
-
-ul li a {
-    font-weight: 500;
-}
-
-ul li small {
-    margin-left: 0.5rem;
-    color: var(--pico-muted-color);
-}`;
-    return c.text(css, 200, { 'Content-Type': 'text/css', 'Cache-Control': 'public, max-age=3600' });
 });
 
 app.get('/health', (c) => {
@@ -838,68 +704,35 @@ app.get('/webdav/', async (c) => {
     const dmmFiles = await getDMMCastWebDAVFiles(c);
     const hostname = new URL(c.req.url).origin;
 
-    const html = `<!DOCTYPE html>
-<html data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>WebDAV - Cast Magnet Link</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css?2025-12-11">
-    <script>
-        // Support light and dark mode based on system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
-</head>
-<body>
-    <main class="container">
-        <article>
-            <header>
-                <h2>Cast Magnet Link: WebDAV</h2>
-                <p>Available files for streaming</p>
-            </header>
-
-            ${rdFiles && rdFiles.length > 0 ? `
-            <div class="status-info">
-                <h3>WebDAV: Downloads</h3>
-                <p><small>WebDAV: <code>${hostname}/webdav/downloads/</code></small><br />
-                   <small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
-                <ul>
-                    ${rdFiles.map(file => `
-                    <li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
-                    `).join('')}
-                </ul>
-            </div>
-            ` : ''}
-
-            ${dmmFiles && dmmFiles.length > 0 ? `
-            <div class="status-info">
-                <h3>DMM Casted Links:</h3>
-                <p><small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small><br />
-                   <small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
-                <ul>
-                    ${dmmFiles.map(file => `
-                    <li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
-                    `).join('')}
-                </ul>
-            </div>
-            ` : ''}
-
-            <footer style="margin-top: 2rem; text-align: center;">
-                <small>
-                    <a href="/">Home</a> &middot;
-                    <a href="/add">Add Magnet Link</a> &middot;
-                    <a href="/webdav/">WebDAV Files</a>
-                </small>
-            </footer>
-
-        </article>
-    </main>
-</body>
-</html>`;
-    return c.html(html);
+	const content = `
+		${pageHeader('Cast Magnet Link: WebDAV', 'Available files for streaming')}
+		${rdFiles && rdFiles.length > 0 ? `
+		<div class="status-info">
+			<h3>WebDAV: Downloads</h3>
+			<p><small>WebDAV: <code>${hostname}/webdav/downloads/</code></small><br />
+			   <small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
+			<ul>
+				${rdFiles.map(file => `
+				<li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+				`).join('')}
+			</ul>
+		</div>
+		` : ''}
+		${dmmFiles && dmmFiles.length > 0 ? `
+		<div class="status-info">
+			<h3>DMM Casted Links:</h3>
+			<p><small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small><br />
+			   <small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
+			<ul>
+				${dmmFiles.map(file => `
+				<li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+				`).join('')}
+			</ul>
+		</div>
+		` : ''}
+		${footer()}
+	`;
+    return c.html(layout('WebDAV', content));
 });
 
 // Redirect /webdav/downloads to /webdav/downloads/
@@ -915,99 +748,37 @@ app.all('/webdav/dmmcast', async (c) => {
 // GET /webdav/downloads/ - HTML listing for Real-Debrid download links
 app.get('/webdav/downloads/', async (c) => {
     const files = await getRealDebridWebDAVFiles(c);
-
-    const html = `<!DOCTYPE html>
-<html data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Cast Magnet Link: Download Links</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css?2025-12-11">
-    <script>
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
-</head>
-<body>
-    <main class="container">
-        <article>
-            <header>
-                <h2>Download Links</h2>
-                <p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
-            </header>
-
-            <div class="status-info">
-                <h3>Available Files:</h3>
-                <ul>
-                    ${files.map(file => `
-                    <li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
-                    `).join('')}
-                </ul>
-            </div>
-
-            <footer style="margin-top: 2rem; text-align: center;">
-                <small>
-                    <a href="/">Home</a> &middot;
-                    <a href="/add">Add Magnet Link</a> &middot;
-                    <a href="/webdav/">WebDAV Files</a>
-                </small>
-            </footer>
-        </article>
-    </main>
-</body>
-</html>`;
-    return c.html(html);
+	const content = `
+		${pageHeader('Download Links', '<small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small>')}
+		<div class="status-info">
+			<h3>Available Files:</h3>
+			<ul>
+				${files.map(file => `
+				<li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+				`).join('')}
+			</ul>
+		</div>
+		${footer()}
+	`;
+    return c.html(layout('Download Links', content));
 });
 
 // GET /webdav/dmmcast/ - HTML listing for DMM Cast
 app.get('/webdav/dmmcast/', async (c) => {
     const files = await getDMMCastWebDAVFiles(c);
-
-    const html = `<!DOCTYPE html>
-<html data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>DMM Casted Links - Cast Magnet Link</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/style.css?2025-12-11">
-    <script>
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
-</head>
-<body>
-    <main class="container">
-        <article>
-            <header>
-                <h2>DMM Casted Links</h2>
-                <p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
-            </header>
-
-            <div class="status-info">
-                <h3>Available Files:</h3>
-                <ul>
-                    ${files.map(file => `
-                    <li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
-                    `).join('')}
-                </ul>
-            </div>
-
-            <footer style="margin-top: 2rem; text-align: center;">
-                <small>
-                    <a href="/">Home</a> &middot;
-                    <a href="/add">Add Magnet Link</a> &middot;
-                    <a href="/webdav/">WebDAV Files</a>
-                </small>
-            </footer>
-        </article>
-    </main>
-</body>
-</html>`;
-    return c.html(html);
+	const content = `
+		${pageHeader('DMM Casted Links', '<small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small>')}
+		<div class="status-info">
+			<h3>Available Files:</h3>
+			<ul>
+				${files.map(file => `
+				<li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+				`).join('')}
+			</ul>
+		</div>
+		${footer()}
+	`;
+    return c.html(layout('DMM Casted Links', content));
 });
 
 // GET /webdav/downloads/:filename - Serve .strm files from Real-Debrid download links

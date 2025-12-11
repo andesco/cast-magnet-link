@@ -7,6 +7,7 @@ import { getConfig } from './config.node.js';
 const config = getConfig(process.env);
 
 // Static file serving for Node.js - only serve actual static asset directories
+app.use('/style.css', serveStatic({ path: './public/style.css' }));
 app.use('/Infuse/*', serveStatic({ root: './public' }));
 app.use('/metadata/*', serveStatic({ root: './public' }));
 
