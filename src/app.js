@@ -1,5 +1,5 @@
 
-import { serveStatic } from '@hono/node-server/serve-static';
+import { serveStatic } from 'hono/cloudflare-workers';
 import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { getConfig } from './config.worker.js';
@@ -846,8 +846,5 @@ app.get('/webdav/dmmcast/:filename', async (c) => {
 
     return c.text('File type not supported for direct GET', 400);
 });
-
-// --- Static File Serving (for Node.js) ---
-app.use('/*', serveStatic({ root: './public' }));
 
 export default app;
