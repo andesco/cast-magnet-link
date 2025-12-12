@@ -81,18 +81,24 @@ Cast Magnet Link is:
 
 ### WebDAV
 
-Add the WebDAV endpoint to your media player:
+Add one or both of the WebDAV endpoints to your media player:
 
-- **URL**: `https://{hostname}/webdav/`
-- **username**
-- **password**
+- URL: `https://{hostname}/webdav/downloads/`
+  - 10 most recent Real-Debrid download links
+- URL: `https://{hostname}/webdav/dmmcast/`
+  - all DMM Cast media added within the last 7 days**
+- username: `WEBDAV_USERNAME`
+- password: `WEBDAV_PASSWORD`
 
-The WebDAV directory and file list is refreshed each time you access the service to include `.strm` files for:
+WebDAV directories and file lists are refreshed each time you access the service, with `.strm` files created for each link.
 
-- **the most recent Real-Debrid download links**
-- **all DMM Cast media added within the last 7 days**
+### Media Player Artwork
 
-Static metadata files from the `public/` directory are also served for media player  coverart:
+[Artwork images](public/Infuse/) served via WebDAV can be use within Infuse and other  media players that support [overriding artwork](https://support.firecore.com/hc/en-us/articles/4405042929559-Overriding-Artwork-and-Metadata).
+
+- favorite-atv.png
+- favorite.png
+- folder.png
 
 <center>
   <p><img src="public/Infuse/favorite-atv.png" alt="Infuse artwork" width="300px"><br>

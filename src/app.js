@@ -320,7 +320,8 @@ app.get('/', async (c) => {
 		<div class="status-info">
 			<h3>Most Recent Download Links</h3>
 			<p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small><br />
-			   <small>WebDAV: <code>${hostname}/webdav/downloads/</code></small></p>
+			   <small>WebDAV: <code>${hostname}/webdav/downloads/</code></small>
+            </p>
 			<ul>
 				${rdDownloads.map(d => `
 				<li><a href="${d.downloadUrl}" target="_blank">${d.filename}</a> <small><code>${formatBytes(d.filesize || 0)}</code></small></li>
@@ -339,7 +340,8 @@ app.get('/', async (c) => {
 		<div class="status-info">
 			<h3>Most Recent Casted Links</h3>
 			<p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small><br />
-			   <small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small></p>
+			   <small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small>
+            </p>
 			<ul>
 				${castedLinks.map(link => `
 				<li><a href="${link.url}" target="_blank">${link.filename}</a> <small><code>${link.sizeGB} GB</code></small></li>
@@ -369,8 +371,8 @@ app.get('/add', (c) => {
             <br />automatically add infohash: <code>https://cast-magnet-link.dev/add/{info hash}</code></p>
 
             <p style="margin-top: 2rem;">A browser extension like <a href="https://apple.co/4e0lkPG">StopTheMadness Pro</a> that supports <a href="https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html">URL redirect rules</a> can redirect magnet links to this page:</p>
-            <p>URL matching pattern: <code>/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/</code>
-            <br />replacement pattern: <code>https://cast-magnet-link.dev/add/$1</code></p>
+            <p>matching pattern: <code>/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/</code>
+            <br />replacement pattern: <code>https://cast.user.workers.dev/add/$1</code></p>
         </small>
 		${footer()}
 	`;
@@ -613,15 +615,22 @@ app.on(['PROPFIND'], '/webdav/downloads/', async (c) => {
     const requestUrl = new URL(c.req.url);
     const requestPath = requestUrl.pathname;
 
-    // Add favorite-atv.png for Infuse (only in PROPFIND, not in HTML listing)
-    const staticFile = {
-        name: 'favorite-atv.png',
-        size: 20824,
-        modified: '2024-10-23T00:00:00.000Z',
-        contentType: 'image/png'
-    };
+    const downloadsStaticFiles = [
+        {
+            name: 'favorite-atv.png',
+            size: 158179,
+            modified: '2025-12-12T00:00:00.000Z',
+            contentType: 'image/png'
+        },
+        {
+            name: 'favorite.png',
+            size: 86070,
+            modified: '2025-12-12T00:00:00.000Z',
+            contentType: 'image/png'
+        }
+    ];
 
-    const allFiles = [...files, staticFile];
+    const allFiles = [...files, ...downloadsStaticFiles];
 
     const responses = allFiles.map(file => `
       <D:response>
@@ -664,15 +673,22 @@ app.on(['PROPFIND'], '/webdav/dmmcast/', async (c) => {
     const requestUrl = new URL(c.req.url);
     const requestPath = requestUrl.pathname;
 
-    // Add favorite-atv.png for Infuse (only in PROPFIND, not in HTML listing)
-    const staticFile = {
-        name: 'favorite-atv.png',
-        size: 20824,
-        modified: '2024-10-23T00:00:00.000Z',
-        contentType: 'image/png'
-    };
+    const dmmcastStaticFiles = [
+        {
+            name: 'favorite-atv.png',
+            size: 71083,
+            modified: '2025-12-12T00:00:00.000Z',
+            contentType: 'image/png'
+        },
+        {
+            name: 'favorite.png',
+            size: 121081,
+            modified: '2025-12-12T00:00:00.000Z',
+            contentType: 'image/png'
+        }
+    ];
 
-    const allFiles = [...files, staticFile];
+    const allFiles = [...files, ...dmmcastStaticFiles];
 
     const responses = allFiles.map(file => `
       <D:response>
@@ -718,9 +734,10 @@ app.get('/webdav/', async (c) => {
 		${pageHeader('Cast Magnet Link: WebDAV', 'Available files for streaming')}
 		${rdFiles && rdFiles.length > 0 ? `
 		<div class="status-info">
-			<h3>WebDAV: Downloads</h3>
-			<p><small>WebDAV: <code>${hostname}/webdav/downloads/</code></small><br />
-			   <small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
+			<h3>WebDAV: Most Recent Download Links</h3>
+			<p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small><br />
+			   <small>WebDAV: <code>${hostname}/webdav/downloads/</code></small>
+            </p>
 			<ul>
 				${rdFiles.map(file => `
 				<li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
@@ -730,9 +747,10 @@ app.get('/webdav/', async (c) => {
 		` : ''}
 		${dmmFiles && dmmFiles.length > 0 ? `
 		<div class="status-info">
-			<h3>DMM Casted Links:</h3>
+			<h3>WebDAV: Most Recent Casted Links</h3>
 			<p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small><br />
-			   <small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small></p>
+			   <small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small>
+            </p>
 			<ul>
 				${dmmFiles.map(file => `
 				<li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
@@ -791,18 +809,17 @@ app.get('/webdav/dmmcast/', async (c) => {
     return c.html(layout('DMM Casted Links', content));
 });
 
+// --- WebDAV Static File Serving for Infuse ---
+app.use('/webdav/dmmcast/favorite.png', serveStatic({ path: './public/Infuse/dmmcast/favorite.png' }));
+app.use('/webdav/dmmcast/favorite-atv.png', serveStatic({ path: './public/Infuse/dmmcast/favorite-atv.png' }));
+app.use('/webdav/downloads/favorite.png', serveStatic({ path: './public/Infuse/downloads/favorite.png' }));
+app.use('/webdav/downloads/favorite-atv.png', serveStatic({ path: './public/Infuse/downloads/favorite-atv.png' }));
+
+
 // GET /webdav/downloads/:filename - Serve .strm files from Real-Debrid download links
 app.get('/webdav/downloads/:filename', async (c) => {
     const { filename } = c.req.param();
-    const files = await getRealDebridWebDAVFiles(c);
-    const file = files.find(f => f.name === filename);
-
     if (!file) {
-        // Also check for static files (favorite-atv.png)
-        if (filename === 'favorite-atv.png') {
-            // Return 404 for now - static files handled by entry point middleware
-            return c.text('File not found', 404);
-        }
         return c.text('File not found', 404);
     }
 
@@ -820,11 +837,6 @@ app.get('/webdav/dmmcast/:filename', async (c) => {
     const file = files.find(f => f.name === filename);
 
     if (!file) {
-        // Also check for static files (favorite-atv.png)
-        if (filename === 'favorite-atv.png') {
-            // Return 404 for now - static files handled by entry point middleware
-            return c.text('File not found', 404);
-        }
         return c.text('File not found', 404);
     }
 
