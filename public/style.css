@@ -65,3 +65,29 @@ ul li small {
     margin-left: 0.5rem;
     color: var(--pico-muted-color);
 }
+
+/* Custom styles for button alignment and width */
+.button-wrapper {
+    margin-bottom: 1rem; /* Spacing between button groups */
+    display: flex; /* Use flexbox for alignment of the button/form itself */
+    justify-content: flex-start; /* Align the button/form to the left */
+}
+
+.button-wrapper form {
+    /* Ensure the form content (input and button) is handled well */
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* Take full width for containing elements */
+}
+
+.button-wrapper input[type="text"] {
+    max-width: 18.75rem; /* Constrain the width of the input */
+    width: 100%; /* Be fluid up to max-width */
+    margin-bottom: 0.5rem; /* Space between input and button */
+}
+
+.button-wrapper button,
+.button-wrapper a[role="button"] {
+    max-width: 18.75rem; /* Constrain the width of the buttons */
+    width: 100%; /* Be fluid up to max-width */
+}

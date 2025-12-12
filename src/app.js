@@ -1,4 +1,5 @@
 
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { getConfig } from './config.worker.js';
@@ -318,32 +319,36 @@ app.get('/', async (c) => {
 		${rdDownloads && rdDownloads.length > 0 ? `
 		<div class="status-info">
 			<h3>Most Recent Download Links</h3>
-			<p><small>WebDAV: <code>${hostname}/webdav/downloads/</code></small><br />
-			   <small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small></p>
+			<p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small><br />
+			   <small>WebDAV: <code>${hostname}/webdav/downloads/</code></small></p>
 			<ul>
 				${rdDownloads.map(d => `
 				<li><a href="${d.downloadUrl}" target="_blank">${d.filename}</a> <small><code>${formatBytes(d.filesize || 0)}</code></small></li>
 				`).join('')}
 			</ul>
 		</div>
-        <form method="POST" action="/add">
-            <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
-            <button type="submit">Add Magnet Link</button>
-        </form>
+        <div class="button-wrapper">
+            <form method="POST" action="/add">
+                <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
+                <button type="submit">Add Magnet Link</button>
+            </form>
+        </div>
         <hr>
 		` : ''}
 		${castedLinks && castedLinks.length > 0 ? `
 		<div class="status-info">
 			<h3>Most Recent Casted Links</h3>
-			<p><small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small><br />
-			   <small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small></p>
+			<p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small><br />
+			   <small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small></p>
 			<ul>
 				${castedLinks.map(link => `
 				<li><a href="${link.url}" target="_blank">${link.filename}</a> <small><code>${link.sizeGB} GB</code></small></li>
 				`).join('')}
 			</ul>
 		</div>
-        <a href="https://debridmediamanager.com/stremio/manage" target="_blank" role="button">Manage Casted Links</a>
+        <div class="button-wrapper">
+            <a href="https://debridmediamanager.com/stremio/manage" target="_blank" role="button">Manage Casted Links</a>
+        </div>
 		` : ''}
 		${footer()}
 	`;
@@ -829,5 +834,8 @@ app.get('/webdav/dmmcast/:filename', async (c) => {
 
     return c.text('File type not supported for direct GET', 400);
 });
+
+// --- Static File Serving (for Node.js) ---
+app.use('/*', serveStatic({ root: './public' }));
 
 export default app;
