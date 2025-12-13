@@ -2,22 +2,33 @@
 
 Cast Magnet Link makes it quick and easy to stream [Real-Debrid] hosted media:
 
-* cast from [Debrid Media Manager]
-* available as unrestricted [download links]
-* added manually using magnet links
+* cast from [Debrid Media Manager];
+* available as unrestricted [download links]; or
+* added manually using magnet links.
 
-Cast Magnet Link is:
-* compatible with [Infuse] and other media players that support **`WebDAV`** and **`.strm`** files
-* a WebDAV alternative to use [DMM Cast] <u>without</u> its [Stremio add-on].
-* built on [Hono] to run as either a Cloudflare Workers serverless function or a Node.js system service.
+Cast Magnet Link:
+* avoids using Stremio and add-ons;
+* is compatible with [Infuse] and media players that support **`WebDAV`** and **`.strm`** files; and
+* was built on [Hono] to run as either a Cloudflare Workers serverless function or a Node.js system service.
 
 ## Features
 
-**Cast Magnet Links**: Add magnet links or infohashes to stream media <u>without</u> adding them to your Real-Debrid library.
+**Download Links**: stream recent [download links] directly from Real-Debrid servers.
 
-**DMM Cast**: Steam recently casted media <u>without</u> Stremio compatability.
+**Casted Links**: stream media cast with [DMM Cast] <u>without</u> using the Stremio add-on.
 
-**Direct Streaming**: Access your recent media via **`WebDAV`** and **`.strm`** files (which contain and redirect to unrestricted Real-Debrid downloads).
+**Add Magnet Link**: add a magnet link or infohash to stream media <u>without</u> adding it to your Real-Debrid library.
+
+<center>
+  <figure>
+    <img src="public/downloads/favorite-atv.png" width="300px">
+    <figcaption>Download Links</figcaption>
+  </figure>
+  <figure>
+    <img src="public/dmmcast/favorite-atv.png" width="300px">
+    <figcaption>Casted Links</figcaption>
+  </figure>
+</center>
 
 ## Deploy to Cloudflare
    
@@ -71,20 +82,21 @@ Cast Magnet Link is:
   - auto-selects the file (only one large file exists)
   - prompts for file selection (multiple large files exist)
   - generates and caches an unrestricted download link
-  - removes the magnet link from your library (while keeping the download link)
+  - removes the magnet link from your library (while keeping the download link) \
+  &nbsp;
 
-> [!NOTE]
-> A browser extension like [StopTheMadness Pro](https://apple.co/4e0lkPG) that supports [URL redirect rules](https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html) can redirect magnet links to this page and automatically create a new download link:
->
-> URL matching pattern: `/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/`
-> replacement pattern: `https://zurgproxy.andrewe.dev/add/$1`
+  > [!NOTE]
+  > A browser extension like [StopTheMadness Pro](https://apple.co/4e0lkPG) that supports [URL redirect rules](https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html) can redirect magnet links to this service to automatically create new download links:
+  >
+  > matching pattern: `/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/`
+  > replacement pattern: `https://cast.user.workers.dev/add/$1`
 
 ### WebDAV
 
 Add one or both of the WebDAV endpoints to your media player:
 
 - URL: `https://{hostname}/webdav/downloads/`
-  - 10 most recent Real-Debrid download links
+  - 10 most recent download links
 - URL: `https://{hostname}/webdav/dmmcast/`
   - all DMM Cast media added within the last 7 days**
 - username: `WEBDAV_USERNAME`
@@ -94,16 +106,7 @@ WebDAV directories and file lists are refreshed each time you access the service
 
 ### Media Player Artwork
 
-[Artwork images](public/Infuse/) served via WebDAV can be use within Infuse and other  media players that support [overriding artwork](https://support.firecore.com/hc/en-us/articles/4405042929559-Overriding-Artwork-and-Metadata).
-
-- favorite-atv.png
-- favorite.png
-- folder.png
-
-<center>
-  <p><img src="public/Infuse/favorite-atv.png" alt="Infuse artwork" width="300px"><br>
-Cast Magnet Link</p>
-</center>
+Infuse and other media players that support [overriding artwork](https://support.firecore.com/hc/en-us/articles/4405042929559-Overriding-Artwork-and-Metadata) can use the [artwork] served via WebDAV. Infuse defaults to using `favorite.png` and `favorite-atv.png`.
 
 ## Configuration
 
@@ -193,9 +196,9 @@ Cloudflare Worker:
 npx wrangler tail
 ```
 
-### Smart IP Forwarding
+### Add Magent Link: Smart IP Forwarding
 
-The service automatically forwards your public IP address to Real-Debrid’s API. This improves streaming performance (optimal CDN routing), ensures more consistent IP address (avoids datacentre IP addresses), and mirrors the way [DMM Cast] forwards your IP address.
+The service automatically forwards your public IP address to Real-Debrid’s API. This mirrors the way [Debrid Media Manager] forwards your IP address.
 
 - **Cloudflare Workers**: uses `cf-connecting-ip`
 - **Node.js**: extracts from `remoteAddress` socket connection
@@ -206,7 +209,7 @@ Private IP ranges are automatically filtered and not sent to Real-Debrid:
 - `127.x.x.x` (loopback)
 - `169.254.x.x` (link-local)
 
-If no public IP is detected (e.g., local development), requests proceed without the IP parameter. This feature requires no configuration and works automatically in all deployment environments.
+If no public IP is detected (local development), requests proceed without the IP parameter. This feature requires no configuration and works automatically in all deployment environments.
 
 ## Troubleshooting
 
@@ -222,9 +225,9 @@ If no public IP is detected (e.g., local development), requests proceed without 
 - review logs: `sudo journalctl -u cast-magnet-link -n 50`
 
 **Cloudflare Worker deployment fails:**
-- Ensure secrets are set: `npx wrangler secret list`
-- Verify KV namespace is configured correctly in `wrangler.toml`
-- Check account_id is correct
+- ensure secrets are set: `npx wrangler secret list`
+- verify KV namespace is configured correctly in `wrangler.toml`
+- check if `account_id` is correct
 
 [Hono]: http://hono.dev
 [Infuse]: https://firecore.com/infuse
@@ -236,3 +239,4 @@ If no public IP is detected (e.g., local development), requests proceed without 
 [Stremio add-on]: https://debridmediamanager.com/stremio
 [Real-Debrid]: https://real-debrid.com
 [download links]: https://real-debrid.com/downloads
+[artwork]: https://github.com/andesco/cast-magnet-link/tree/main/public
