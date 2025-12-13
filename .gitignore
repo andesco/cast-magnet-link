@@ -37,3 +37,4 @@ GEMINI*.md
 
 # Development
 .dev/
+.DS_Store

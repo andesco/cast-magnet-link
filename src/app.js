@@ -6,6 +6,7 @@ import { getConfig } from './config.worker.js';
 import { getEnv } from './env.js';
 import * as rdClient from './rdClient.js';
 import { getPublicIP } from './ipUtils.js';
+import { serveAsset, getAssetsInDirectory } from './dynamic-assets.js';
 
 const app = new Hono();
 
@@ -24,11 +25,10 @@ app.use('*', async (c, next) => {
     await next();
 });
 
-// Basic Auth Middleware - Protect ALL routes except /health and static files
+// Basic Auth Middleware - Protect ALL routes except /health
 app.use('*', async (c, next) => {
-    // Skip auth for health check and static files
-    const publicPaths = ['/health', '/style.css', '/Infuse/', '/metadata/'];
-    if (publicPaths.some(path => c.req.path === path || c.req.path.startsWith(path))) {
+    // Skip auth for health check only
+    if (c.req.path === '/health') {
         return next();
     }
 
@@ -608,6 +608,49 @@ async function getDMMCastWebDAVFiles(c) {
     }
 }
 
+// PROPFIND /webdav/ - WebDAV root showing directories
+app.on(['PROPFIND'], '/webdav/', async (c) => {
+    const depth = c.req.header('Depth') || '0';
+    const requestUrl = new URL(c.req.url);
+    const requestPath = requestUrl.pathname;
+
+    const directories = [
+        { name: 'downloads/', modified: new Date().toUTCString() },
+        { name: 'dmmcast/', modified: new Date().toUTCString() }
+    ];
+
+    const responses = directories.map(dir => `
+      <D:response>
+        <D:href>${requestPath}${dir.name}</D:href>
+        <D:propstat>
+          <D:prop>
+            <D:resourcetype><D:collection/></D:resourcetype>
+            <D:getlastmodified>${dir.modified}</D:getlastmodified>
+          </D:prop>
+          <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+      </D:response>`).join('');
+
+    const collectionResponse = `
+      <D:response>
+        <D:href>${requestPath}</D:href>
+        <D:propstat>
+          <D:prop>
+            <D:resourcetype><D:collection/></D:resourcetype>
+            <D:getlastmodified>${new Date().toUTCString()}</D:getlastmodified>
+          </D:prop>
+          <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+      </D:response>`;
+
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:">
+${depth !== '0' ? responses : ''}${collectionResponse}
+</D:multistatus>`;
+
+    return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+});
+
 // PROPFIND /webdav/downloads/ - WebDAV endpoint for Real-Debrid download links
 app.on(['PROPFIND'], '/webdav/downloads/', async (c) => {
     const files = await getRealDebridWebDAVFiles(c);
@@ -615,21 +658,8 @@ app.on(['PROPFIND'], '/webdav/downloads/', async (c) => {
     const requestUrl = new URL(c.req.url);
     const requestPath = requestUrl.pathname;
 
-    const downloadsStaticFiles = [
-        {
-            name: 'favorite-atv.png',
-            size: 158179,
-            modified: '2025-12-12T00:00:00.000Z',
-            contentType: 'image/png'
-        },
-        {
-            name: 'favorite.png',
-            size: 86070,
-            modified: '2025-12-12T00:00:00.000Z',
-            contentType: 'image/png'
-        }
-    ];
-
+    const env = getEnv(c);
+    const downloadsStaticFiles = await getAssetsInDirectory('downloads', env);
     const allFiles = [...files, ...downloadsStaticFiles];
 
     const responses = allFiles.map(file => `
@@ -673,21 +703,8 @@ app.on(['PROPFIND'], '/webdav/dmmcast/', async (c) => {
     const requestUrl = new URL(c.req.url);
     const requestPath = requestUrl.pathname;
 
-    const dmmcastStaticFiles = [
-        {
-            name: 'favorite-atv.png',
-            size: 71083,
-            modified: '2025-12-12T00:00:00.000Z',
-            contentType: 'image/png'
-        },
-        {
-            name: 'favorite.png',
-            size: 121081,
-            modified: '2025-12-12T00:00:00.000Z',
-            contentType: 'image/png'
-        }
-    ];
-
+    const env = getEnv(c);
+    const dmmcastStaticFiles = await getAssetsInDirectory('dmmcast', env);
     const allFiles = [...files, ...dmmcastStaticFiles];
 
     const responses = allFiles.map(file => `
@@ -809,16 +826,39 @@ app.get('/webdav/dmmcast/', async (c) => {
     return c.html(layout('DMM Casted Links', content));
 });
 
-// --- WebDAV Static File Serving for Infuse ---
-app.use('/webdav/dmmcast/favorite.png', serveStatic({ path: './public/Infuse/dmmcast/favorite.png' }));
-app.use('/webdav/dmmcast/favorite-atv.png', serveStatic({ path: './public/Infuse/dmmcast/favorite-atv.png' }));
-app.use('/webdav/downloads/favorite.png', serveStatic({ path: './public/Infuse/downloads/favorite.png' }));
-app.use('/webdav/downloads/favorite-atv.png', serveStatic({ path: './public/Infuse/downloads/favorite-atv.png' }));
+// --- Static File Serving ---
+// Dynamically serve files from R2 (if configured) or bundled assets
 
+// Dynamic route handler for /public/* paths
+app.get('/public/*', async (c) => {
+    const path = c.req.path.replace('/public/', '');
+    const env = getEnv(c);
+    const response = await serveAsset(path, env);
+    return response || c.text(`File not found: ${path}`, 404);
+});
 
-// GET /webdav/downloads/:filename - Serve .strm files from Real-Debrid download links
+// Removed generic /webdav/:directory/:filename route
+// Static files are now handled in the specific routes below
+
+// GET /webdav/downloads/:filename - Serve .strm files from Real-Debrid download links or static files
 app.get('/webdav/downloads/:filename', async (c) => {
     const { filename } = c.req.param();
+
+    // First, try to serve as static file
+    if (!filename.endsWith('.strm')) {
+        const env = getEnv(c);
+        const assetPath = `downloads/${filename}`;
+        const response = await serveAsset(assetPath, env);
+        if (response) {
+            return response;
+        }
+        // If not found as static file, continue to .strm handling
+    }
+
+    // Handle .strm files
+    const files = await getDownloadsWebDAVFiles(c);
+    const file = files.find(f => f.name === filename);
+
     if (!file) {
         return c.text('File not found', 404);
     }
@@ -830,9 +870,22 @@ app.get('/webdav/downloads/:filename', async (c) => {
     return c.text('File type not supported for direct GET', 400);
 });
 
-// GET /webdav/dmmcast/:filename - Serve .strm files from DMM Cast
+// GET /webdav/dmmcast/:filename - Serve .strm files from DMM Cast or static files
 app.get('/webdav/dmmcast/:filename', async (c) => {
     const { filename } = c.req.param();
+
+    // First, try to serve as static file
+    if (!filename.endsWith('.strm')) {
+        const env = getEnv(c);
+        const assetPath = `dmmcast/${filename}`;
+        const response = await serveAsset(assetPath, env);
+        if (response) {
+            return response;
+        }
+        // If not found as static file, continue to .strm handling
+    }
+
+    // Handle .strm files
     const files = await getDMMCastWebDAVFiles(c);
     const file = files.find(f => f.name === filename);
 

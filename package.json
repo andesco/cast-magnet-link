@@ -5,9 +5,10 @@
   "description": "WebDAV streaming service for Real-Debrid casted magnet links",
   "main": "src/server.js",
   "scripts": {
+    "build:assets": "node scripts/generate-assets.js",
     "node:start": "node src/server.js",
     "node:dev": "nodemon src/server.js",
-    "worker:deploy": "wrangler deploy --config wrangler.local.toml",
+    "worker:deploy": "npm run build:assets && wrangler deploy --config wrangler.local.toml",
     "worker:dev": "wrangler dev --config wrangler.local.toml",
     "worker:tail": "wrangler tail --config wrangler.local.toml",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,6 +22,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.4.1",
     "@hono/node-server": "^1.19.5",
     "axios": "^1.7.7",
     "basic-auth": "^2.0.1",
