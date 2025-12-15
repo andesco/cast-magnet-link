@@ -856,7 +856,7 @@ app.get('/webdav/downloads/:filename', async (c) => {
     }
 
     // Handle .strm files
-    const files = await getDownloadsWebDAVFiles(c);
+    const files = await getRealDebridWebDAVFiles(c);
     const file = files.find(f => f.name === filename);
 
     if (!file) {
