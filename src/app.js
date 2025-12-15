@@ -25,10 +25,11 @@ app.use('*', async (c, next) => {
     await next();
 });
 
-// Basic Auth Middleware - Protect ALL routes except /health
+// Basic Auth Middleware - Protect ALL routes except /health and public assets
 app.use('*', async (c, next) => {
-    // Skip auth for health check only
-    if (c.req.path === '/health') {
+    // Skip auth for health check and public static assets
+    const publicPaths = ['/health', '/style.css', '/public/'];
+    if (publicPaths.some(path => c.req.path === path || c.req.path.startsWith(path))) {
         return next();
     }
 
@@ -828,6 +829,13 @@ app.get('/webdav/dmmcast/', async (c) => {
 
 // --- Static File Serving ---
 // Dynamically serve files from R2 (if configured) or bundled assets
+
+// Serve style.css from root path
+app.get('/style.css', async (c) => {
+    const env = getEnv(c);
+    const response = await serveAsset('style.css', env);
+    return response || c.text('File not found: style.css', 404);
+});
 
 // Dynamic route handler for /public/* paths
 app.get('/public/*', async (c) => {
