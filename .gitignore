@@ -35,6 +35,9 @@ CLAUDE*.md
 GEMINI.md
 GEMINI*.md
 
+# Environment variables (contains sensitive data)
+.dev.vars
+
 # Development
 .dev/
 .DS_Store
