@@ -19,7 +19,7 @@ Cast Magnet Link:
 
 **Add Magnet Link**: add a magnet link or infohash to stream media <u>without</u> adding it to your Real-Debrid library.
 
-<center>
+<div align="center">
   <figure>
     <img src="public/downloads/favorite-atv.png" width="300px">
     <figcaption>Download Links</figcaption>
@@ -28,7 +28,7 @@ Cast Magnet Link:
     <img src="public/dmmcast/favorite-atv.png" width="300px">
     <figcaption>Casted Links</figcaption>
   </figure>
-</center>
+</div>
 
 ## Deploy to Cloudflare
    
