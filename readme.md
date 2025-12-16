@@ -78,14 +78,12 @@ Cast Magnet Link:
   - auto-selects the file (only one large file exists)
   - prompts for file selection (multiple large files exist)
   - generates and caches an unrestricted download link
-  - removes the magnet link from your library (while keeping the download link) \
-  &nbsp;
+  - removes the magnet link from your library (while keeping the download link)
 
-  > [!NOTE]
-  > A browser extension like [StopTheMadness Pro](https://apple.co/4e0lkPG) that supports [URL redirect rules](https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html) can redirect magnet links to this service to automatically create new download links:
-  >
-  > matching pattern: `/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/`
-  > replacement pattern: `https://cast.user.workers.dev/add/$1`
+> [!NOTE]
+> A browser extension like [StopTheMadness Pro](https://apple.co/4e0lkPG) that supports [URL redirect rules](https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html) can redirect magnet links to this service to automatically create new download links: \
+> matching pattern: `/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/` \
+> replacement pattern: `https://cast.user.workers.dev/add/$1`
 
 ### WebDAV
 
