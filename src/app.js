@@ -490,9 +490,13 @@ app.get('/health', (c) => {
 
 // --- WebDAV ---
 
-// Redirect /webdav to /webdav/
+// Backward compatibility redirects from old /webdav/ paths
 app.all('/webdav', async (c) => {
-    return c.redirect('/webdav/', 301);
+    return c.redirect('/', 301);
+});
+
+app.all('/webdav/', async (c) => {
+    return c.redirect('/', 301);
 });
 
 /**
@@ -614,8 +618,8 @@ async function getDMMCastWebDAVFiles(c) {
     }
 }
 
-// PROPFIND /webdav/ - WebDAV root showing directories
-app.on(['PROPFIND'], '/webdav/', async (c) => {
+// PROPFIND / - WebDAV root showing directories
+app.on(['PROPFIND'], '/', async (c) => {
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
     const requestPath = requestUrl.pathname;
@@ -657,12 +661,12 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
     return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 });
 
-// PROPFIND /webdav/downloads/ - WebDAV endpoint for Real-Debrid download links
-app.on(['PROPFIND'], '/webdav/downloads/', async (c) => {
+// PROPFIND /downloads (without trailing slash) - Handle macOS WebDAV clients
+app.on(['PROPFIND'], '/downloads', async (c) => {
     const files = await getRealDebridWebDAVFiles(c);
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
-    const requestPath = requestUrl.pathname;
+    const requestPath = '/downloads/'; // Always use trailing slash in response
 
     const env = getEnv(c);
     const downloadsStaticFiles = await getAssetsInDirectory('downloads', env);
@@ -670,9 +674,10 @@ app.on(['PROPFIND'], '/webdav/downloads/', async (c) => {
 
     const responses = allFiles.map(file => `
       <D:response>
-        <D:href>${requestPath}${file.name}</D:href>
+        <D:href>${requestPath}${encodeURIComponent(file.name)}</D:href>
         <D:propstat>
           <D:prop>
+            <D:displayname>${file.name}</D:displayname>
             <D:resourcetype/>
             <D:getcontentlength>${file.size}</D:getcontentlength>
             <D:getlastmodified>${new Date(file.modified).toUTCString()}</D:getlastmodified>
@@ -702,8 +707,100 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
     return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 });
 
-// PROPFIND /webdav/dmmcast/ - WebDAV endpoint for DMM Cast
-app.on(['PROPFIND'], '/webdav/dmmcast/', async (c) => {
+// PROPFIND /downloads/ - WebDAV endpoint for Real-Debrid download links
+app.on(['PROPFIND'], '/downloads/', async (c) => {
+    const files = await getRealDebridWebDAVFiles(c);
+    const depth = c.req.header('Depth') || '0';
+    const requestUrl = new URL(c.req.url);
+    const requestPath = requestUrl.pathname;
+
+    const env = getEnv(c);
+    const downloadsStaticFiles = await getAssetsInDirectory('downloads', env);
+    const allFiles = [...files, ...downloadsStaticFiles];
+
+    const responses = allFiles.map(file => `
+      <D:response>
+        <D:href>${requestPath}${encodeURIComponent(file.name)}</D:href>
+        <D:propstat>
+          <D:prop>
+            <D:displayname>${file.name}</D:displayname>
+            <D:resourcetype/>
+            <D:getcontentlength>${file.size}</D:getcontentlength>
+            <D:getlastmodified>${new Date(file.modified).toUTCString()}</D:getlastmodified>
+            <D:getcontenttype>${file.contentType}</D:getcontenttype>
+          </D:prop>
+          <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+      </D:response>`).join('');
+
+    const collectionResponse = `
+      <D:response>
+        <D:href>${requestPath}</D:href>
+        <D:propstat>
+          <D:prop>
+            <D:resourcetype><D:collection/></D:resourcetype>
+            <D:getlastmodified>${new Date().toUTCString()}</D:getlastmodified>
+          </D:prop>
+          <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+      </D:response>`;
+
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:">
+${depth !== '0' ? responses : ''}${collectionResponse}
+</D:multistatus>`;
+
+    return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+});
+
+// PROPFIND /dmmcast (without trailing slash) - Handle macOS WebDAV clients
+app.on(['PROPFIND'], '/dmmcast', async (c) => {
+    const files = await getDMMCastWebDAVFiles(c);
+    const depth = c.req.header('Depth') || '0';
+    const requestUrl = new URL(c.req.url);
+    const requestPath = '/dmmcast/'; // Always use trailing slash in response
+
+    const env = getEnv(c);
+    const dmmcastStaticFiles = await getAssetsInDirectory('dmmcast', env);
+    const allFiles = [...files, ...dmmcastStaticFiles];
+
+    const responses = allFiles.map(file => `
+      <D:response>
+        <D:href>${requestPath}${encodeURIComponent(file.name)}</D:href>
+        <D:propstat>
+          <D:prop>
+            <D:displayname>${file.name}</D:displayname>
+            <D:resourcetype/>
+            <D:getcontentlength>${file.size}</D:getcontentlength>
+            <D:getlastmodified>${new Date(file.modified).toUTCString()}</D:getlastmodified>
+            <D:getcontenttype>${file.contentType}</D:getcontenttype>
+          </D:prop>
+          <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+      </D:response>`).join('');
+
+    const collectionResponse = `
+      <D:response>
+        <D:href>${requestPath}</D:href>
+        <D:propstat>
+          <D:prop>
+            <D:resourcetype><D:collection/></D:resourcetype>
+            <D:getlastmodified>${new Date().toUTCString()}</D:getlastmodified>
+          </D:prop>
+          <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+      </D:response>`;
+
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:">
+${depth !== '0' ? responses : ''}${collectionResponse}
+</D:multistatus>`;
+
+    return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+});
+
+// PROPFIND /dmmcast/ - WebDAV endpoint for DMM Cast
+app.on(['PROPFIND'], '/dmmcast/', async (c) => {
     const files = await getDMMCastWebDAVFiles(c);
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
@@ -715,9 +812,10 @@ app.on(['PROPFIND'], '/webdav/dmmcast/', async (c) => {
 
     const responses = allFiles.map(file => `
       <D:response>
-        <D:href>${requestPath}${file.name}</D:href>
+        <D:href>${requestPath}${encodeURIComponent(file.name)}</D:href>
         <D:propstat>
           <D:prop>
+            <D:displayname>${file.name}</D:displayname>
             <D:resourcetype/>
             <D:getcontentlength>${file.size}</D:getcontentlength>
             <D:getlastmodified>${new Date(file.modified).toUTCString()}</D:getlastmodified>
@@ -786,18 +884,24 @@ app.get('/webdav/', async (c) => {
     return c.html(layout('WebDAV', content));
 });
 
-// Redirect /webdav/downloads to /webdav/downloads/
 app.all('/webdav/downloads', async (c) => {
-    return c.redirect('/webdav/downloads/', 301);
+    return c.redirect('/downloads/', 301);
 });
 
-// Redirect /webdav/dmmcast to /webdav/dmmcast/
+app.all('/webdav/downloads/', async (c) => {
+    return c.redirect('/downloads/', 301);
+});
+
 app.all('/webdav/dmmcast', async (c) => {
-    return c.redirect('/webdav/dmmcast/', 301);
+    return c.redirect('/dmmcast/', 301);
+});
+
+app.all('/webdav/dmmcast/', async (c) => {
+    return c.redirect('/dmmcast/', 301);
 });
 
 // GET /webdav/downloads/ - HTML listing for Real-Debrid download links
-app.get('/webdav/downloads/', async (c) => {
+app.get('/downloads/', async (c) => {
     const files = await getRealDebridWebDAVFiles(c);
 	const content = `
 		${pageHeader('Download Links', '<small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small>')}
@@ -815,7 +919,7 @@ app.get('/webdav/downloads/', async (c) => {
 });
 
 // GET /webdav/dmmcast/ - HTML listing for DMM Cast
-app.get('/webdav/dmmcast/', async (c) => {
+app.get('/dmmcast/', async (c) => {
     const files = await getDMMCastWebDAVFiles(c);
 	const content = `
 		${pageHeader('DMM Casted Links', '<small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small>')}
@@ -853,8 +957,8 @@ app.get('/public/*', async (c) => {
 // Removed generic /webdav/:directory/:filename route
 // Static files are now handled in the specific routes below
 
-// GET /webdav/downloads/:filename - Serve .strm files from Real-Debrid download links or static files
-app.get('/webdav/downloads/:filename', async (c) => {
+// GET /downloads/:filename - Serve .strm files from Real-Debrid download links or static files
+app.get('/downloads/:filename', async (c) => {
     const { filename } = c.req.param();
 
     // First, try to serve as static file
@@ -883,8 +987,8 @@ app.get('/webdav/downloads/:filename', async (c) => {
     return c.text('File type not supported for direct GET', 400);
 });
 
-// GET /webdav/dmmcast/:filename - Serve .strm files from DMM Cast or static files
-app.get('/webdav/dmmcast/:filename', async (c) => {
+// GET /dmmcast/:filename - Serve .strm files from DMM Cast or static files
+app.get('/dmmcast/:filename', async (c) => {
     const { filename } = c.req.param();
 
     // First, try to serve as static file
@@ -913,9 +1017,11 @@ app.get('/webdav/dmmcast/:filename', async (c) => {
     return c.text('File type not supported for direct GET', 400);
 });
 
-// DELETE /dmmcast/:filename - Delete DMM Cast entry via WebDAV
-app.on(['DELETE'], '/dmmcast/:filename', async (c) => {
-    const { filename } = c.req.param();
+// DELETE /dmmcast/* - Delete DMM Cast entry via WebDAV
+app.on(['DELETE'], '/dmmcast/*', async (c) => {
+    // Extract filename from path
+    const fullPath = new URL(c.req.url).pathname;
+    const filename = decodeURIComponent(fullPath.replace('/dmmcast/', ''));
 
     try {
         // Parse hash and imdbId from encoded filename (both with prefixes)
