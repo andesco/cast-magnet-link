@@ -96,6 +96,8 @@ async function getCastedLinks(config) {
                 filename: filename,
                 sizeGB: link.size ? Math.round(link.size / 1024 * 100) / 100 : 0, // Convert MB to GB
                 updatedAt: link.updatedAt,
+                imdbId: link.imdbId,  // For deletion support
+                hash: link.hash,       // For deletion support
             };
         });
     } catch (error) {
@@ -571,7 +573,8 @@ async function getDMMCastWebDAVFiles(c) {
         const filesMap = new Map();
         for (const link of castedLinks) {
             const strmUrl = link.url;
-            const filename = `${link.filename}.strm`;
+            // Encode hash and imdbId into filename for deletion support
+            const filename = `${link.filename} {hash-${link.hash}}{imdb-${link.imdbId}}.strm`;
             const modified = new Date(link.updatedAt).getTime();
 
             const fileObj = {
@@ -584,6 +587,8 @@ async function getDMMCastWebDAVFiles(c) {
                 originalFilename: link.filename,
                 filesize: link.sizeGB * 1024 * 1024 * 1024,
                 downloadUrl: link.url,
+                imdbId: link.imdbId,    // Store for reference
+                hash: link.hash,         // Store for reference
             };
 
             const existing = filesMap.get(filename);
@@ -906,6 +911,48 @@ app.get('/webdav/dmmcast/:filename', async (c) => {
     }
 
     return c.text('File type not supported for direct GET', 400);
+});
+
+// DELETE /dmmcast/:filename - Delete DMM Cast entry via WebDAV
+app.on(['DELETE'], '/dmmcast/:filename', async (c) => {
+    const { filename } = c.req.param();
+
+    try {
+        // Parse hash and imdbId from encoded filename (both with prefixes)
+        const match = filename.match(/\{hash-([^}]+)\}\{imdb-([^}]+)\}\.strm$/);
+        if (!match) {
+            console.error('Invalid filename format:', filename);
+            return c.text('Invalid filename format - missing hash or imdbId encoding', 400);
+        }
+
+        const [, hash, imdbId] = match;
+        const config = c.get('config');
+
+        console.log(`Deleting DMM cast: imdbId=${imdbId}, hash=${hash}`);
+
+        // Call DMM delete API
+        const response = await fetch('https://debridmediamanager.com/api/stremio/deletelink', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: config.rdAccessToken,
+                imdbId: imdbId,
+                hash: hash,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            console.error('DMM delete failed:', response.status, error);
+            return c.text(`Delete failed: ${error}`, response.status);
+        }
+
+        console.log('DMM cast deleted successfully');
+        return new Response(null, { status: 204 }); // No Content
+    } catch (error) {
+        console.error('Error deleting DMM cast:', error);
+        return c.text(`Delete failed: ${error.message}`, 500);
+    }
 });
 
 export default app;
