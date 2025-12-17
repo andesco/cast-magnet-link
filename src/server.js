@@ -25,8 +25,8 @@ serve({
 ╔═══════════════════════════════════════════════╗
 ║         Cast Magnet Link Service Started      ║
 ╚═══════════════════════════════════════════════╝`);
-    console.log(`  HTTP Server: http://${displayAddress}:${info.port}`);
-    console.log(`  WebDAV:      http://${displayAddress}:${info.port}/`);
+    console.log(`  HTTP:   http://${displayAddress}:${info.port}`);
+    console.log(`  WebDAV: http://${displayAddress}:${info.port}/`);
     console.log(`
 WebDAV Credentials:
   Username: ${config.webdavUsername}

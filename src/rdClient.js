@@ -12,7 +12,18 @@ async function rdApiCall(config, path, options = {}) {
     if (!response.ok) {
         const errorBody = await response.text();
         console.error(`RD API Error: ${response.status} ${response.statusText}`, errorBody);
-        throw new Error(`Real-Debrid API request failed: ${response.status} ${response.statusText}`);
+
+        let customMessage = '';
+        try {
+            const errorJson = JSON.parse(errorBody);
+            if (errorJson.error) {
+                customMessage = `: ${errorJson.error}`;
+            }
+        } catch (e) {
+            // Ignore JSON parse fail
+        }
+
+        throw new Error(`Real-Debrid API request failed${customMessage} (${response.status})`);
     }
 
     if (response.status === 204) { // No Content

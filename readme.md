@@ -56,7 +56,7 @@ Cast Magnet Link:
 
 4. Add the WebDAV endpoint to your media player:
    ```
-   https://cast-magnet-link.{user}.workers.dev/webdav/
+   https://cast-magnet-link.{user}.workers.dev/
    ```
 
 ## Usage
@@ -89,9 +89,9 @@ Cast Magnet Link:
 
 Add one or both of the WebDAV endpoints to your media player:
 
-- URL: `https://{hostname}/webdav/downloads/`
+- URL: `https://{hostname}/downloads/`
   - 10 most recent download links
-- URL: `https://{hostname}/webdav/dmmcast/`
+- URL: `https://{hostname}/dmmcast/`
   - all DMM Cast media added within the last 7 days**
 - username: `WEBDAV_USERNAME`
 - password: `WEBDAV_PASSWORD`
@@ -127,6 +127,8 @@ Configuration is handled through environment variables. Set them according to yo
 
 ```
 gh repo clone andesco/cast-magnet-link
+cd cast-magnet-link
+npm install
 
 wrangler secret put RD_ACCESS_TOKEN
 wrangler secret put WEBDAV_USERNAME

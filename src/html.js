@@ -30,8 +30,14 @@ export function layout(title, content) {
 }
 
 export function statusHeader(error = null, success = null, defaultTitle = 'Cast Magnet Link', defaultSubtitle = 'Enter a magnet link or infohash to add to WebDAV') {
-    const title = error ? 'Error' : success || defaultTitle;
-    const subtitle = !error && !success ? defaultSubtitle : null;
+    const title = error ? 'Failed to Cast' : success || defaultTitle;
+    let subtitle = error;
+    if (error && error.startsWith('Failed to cast: ')) {
+        subtitle = `error: <code>${error.replace('Failed to cast: ', '')}</code>`;
+    } else if (!error && !success) {
+        subtitle = defaultSubtitle;
+    }
+
     return `
 <header>
     ${error ? `<span class="status-badge error">ERROR</span>` : ''}
@@ -55,13 +61,14 @@ export function footer() {
     <small>
         <a href="/">Home</a> &middot;
         <a href="/add">Add Magnet Link</a> &middot;
-        <a href="/webdav/">WebDAV</a>
+        <a href="/downloads/">Downloads</a> &middot;
+        <a href="/dmmcast/">DMM Cast</a>
     </small>
 </footer>`;
 }
 
 export function formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return '0.0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -69,8 +76,8 @@ export function formatBytes(bytes) {
     // Always show MB as GB for better readability
     if (i === 2) { // MB
         const gb = bytes / Math.pow(k, 3);
-        return Math.round(gb * 100) / 100 + ' GB';
+        return gb.toFixed(1) + ' GB';
     }
 
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
 }

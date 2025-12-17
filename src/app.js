@@ -94,7 +94,7 @@ async function getCastedLinks(config) {
             return {
                 url: link.url || '#',
                 filename: filename,
-                sizeGB: link.size ? Math.round(link.size / 1024 * 100) / 100 : 0, // Convert MB to GB
+                sizeGB: link.size ? (Math.round(link.size / 1024 * 10) / 10).toFixed(1) : '0.0', // Convert MB to GB, 1 decimal
                 updatedAt: link.updatedAt,
             };
         });
@@ -185,7 +185,7 @@ async function processMagnet(c, magnetOrHash, userIP = null) {
             return processSelectedFile(c, torrentId, fileToSelect.id.toString(), userIP);
         }
         else {
-			const content = `
+            const content = `
 				${pageHeader('Select File to Cast', torrentInfo.filename || 'Multiple files found')}
 				<form method="POST" action="/add/select">
 					<input type="hidden" name="torrentId" value="${torrentId}">
@@ -215,11 +215,13 @@ async function processMagnet(c, magnetOrHash, userIP = null) {
     const size = selectedFile ? (selectedFile.bytes || selectedFile.size) : torrentInfo.bytes;
 
     await rdClient.deleteTorrent(config, torrentInfo.id);
-	const content = `
+    const content = `
 		${statusHeader(null, 'Media ready to cast')}
 		<div>
-			<p>Infohash: <code>${torrentInfo.hash}</code></p>
-			<p>File: ${filename || torrentInfo.hash.substring(0, 8) + '...'} <small><code>${formatBytes(size || 0)}</code></small>
+			<p>infohash: <code>${torrentInfo.hash}</code></p>
+            <ul>
+                <li>${filename || torrentInfo.hash.substring(0, 8) + '...'} <small><code>${formatBytes(size || 0)}</code></small></li>
+            </ul>
 		</div>
 		<form method="POST" action="/add">
 			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -227,7 +229,7 @@ async function processMagnet(c, magnetOrHash, userIP = null) {
 		</form>
 		${footer()}
 	`;
-	return c.html(layout('Add Magnet', content));
+    return c.html(layout('Add Magnet', content));
 }
 
 /**
@@ -266,11 +268,13 @@ async function processSelectedFile(c, torrentId, fileId, userIP = null) {
 
     await rdClient.deleteTorrent(config, torrentId);
 
-	const content = `
+    const content = `
 		${statusHeader(null, 'Media ready to cast')}
 		<div>
-			<p>Infohash: <code>${updatedInfo.hash}</code></p>
-			<p>File: ${filename || updatedInfo.hash.substring(0, 8) + '...'} <small><code>${formatBytes(size || 0)}</code></small>
+			<p>infohash: <code>${updatedInfo.hash}</code></p>
+            <ul>
+                <li>${filename || updatedInfo.hash.substring(0, 8) + '...'} <small><code>${formatBytes(size || 0)}</code></small></li>
+            </ul>
 		</div>
 		<form method="POST" action="/add">
 			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -278,7 +282,7 @@ async function processSelectedFile(c, torrentId, fileId, userIP = null) {
 		</form>
 		${footer()}
 	`;
-	return c.html(layout('Add Magnet', content));
+    return c.html(layout('Add Magnet', content));
 }
 
 
@@ -297,7 +301,7 @@ app.get('/', async (c) => {
             return await processMagnet(c, magnetOrHash, userIP);
         } catch (err) {
             console.error('Error auto-adding magnet:', err.message);
-			const content = `
+            const content = `
 				${statusHeader(`Failed to cast: ${err.message}`)}
 				<form method="POST" action="/add">
 					<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -305,7 +309,7 @@ app.get('/', async (c) => {
 				</form>
 				${footer()}
 			`;
-			return c.html(layout('Error', content));
+            return c.html(layout('Error', content));
         }
     }
 
@@ -315,17 +319,23 @@ app.get('/', async (c) => {
     // Get casted links from DMM API for "Most Recent Casted Links"
     const castedLinks = await getCastedLinks(config);
 
-	const content = `
+    const content = `
 		${statusHeader()}
 		${rdDownloads && rdDownloads.length > 0 ? `
 		<div class="status-info">
 			<h3>Most Recent Download Links</h3>
 			<p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small><br />
-			   <small>WebDAV: <code>${hostname}/webdav/downloads/</code></small>
+			   <small>WebDAV: <code>${hostname}/downloads/</code></small>
             </p>
 			<ul>
 				${rdDownloads.map(d => `
-				<li><a href="${d.downloadUrl}" target="_blank">${d.filename}</a> <small><code>${formatBytes(d.filesize || 0)}</code></small></li>
+				<li>
+                    ${d.filename}
+                    <small>
+                        <a href="${d.downloadUrl}" target="_blank"><code>${formatBytes(d.filesize || 0)}</code></a>
+                        &middot; <a href="/downloads/${encodeURIComponent(d.filename)}.strm"><code>1 KB .strm</code></a>
+                    </small>
+                </li>
 				`).join('')}
 			</ul>
 		</div>
@@ -341,11 +351,17 @@ app.get('/', async (c) => {
 		<div class="status-info">
 			<h3>Most Recent Casted Links</h3>
 			<p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small><br />
-			   <small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small>
+			   <small>WebDAV: <code>${hostname}/dmmcast/</code></small>
             </p>
 			<ul>
 				${castedLinks.map(link => `
-				<li><a href="${link.url}" target="_blank">${link.filename}</a> <small><code>${link.sizeGB} GB</code></small></li>
+				<li>
+                    ${link.filename}
+                    <small>
+                        <a href="${link.url}" target="_blank"><code>${link.sizeGB} GB</code></a>
+                        &middot; <a href="/dmmcast/${encodeURIComponent(link.filename)}.strm"><code>1 KB .strm</code></a>
+                    </small>
+                </li>
 				`).join('')}
 			</ul>
 		</div>
@@ -359,7 +375,8 @@ app.get('/', async (c) => {
 });
 
 app.get('/add', (c) => {
-	const content = `
+    const hostname = new URL(c.req.url).origin;
+    const content = `
 		${statusHeader(null, null, 'Cast Magnet Link: Add', 'Enter a magnet link or infohash')}
 		<form method="POST" action="/add">
 			<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -368,12 +385,12 @@ app.get('/add', (c) => {
         <small>
             <p style="margin-top: 2rem;">Redirecting a magnet link to this page will automatically create a new download link:</p>
             <p>magnet link: <code>magnet:\?xt=urn:btih:{infohash}</code>
-            <br />automatically add magnet link: <code>https://cast-magnet-link.dev/add/{magnet link}</code>
-            <br />automatically add infohash: <code>https://cast-magnet-link.dev/add/{info hash}</code></p>
+            <br />automatically add magnet link: <code>${hostname}/add/{magnet link}</code>
+            <br />automatically add infohash: <code>${hostname}/add/{info hash}</code></p>
 
             <p style="margin-top: 2rem;">A browser extension like <a href="https://apple.co/4e0lkPG">StopTheMadness Pro</a> that supports <a href="https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html">URL redirect rules</a> can redirect magnet links to this page:</p>
             <p>matching pattern: <code>/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/</code>
-            <br />replacement pattern: <code>https://cast.user.workers.dev/add/$1</code></p>
+            <br />replacement pattern: <code>${hostname}/add/$1</code></p>
         </small>
 		${footer()}
 	`;
@@ -384,7 +401,7 @@ app.post('/add', async (c) => {
     const body = await c.req.parseBody();
     const magnet = body.magnet;
     if (!magnet) {
-		const content = `
+        const content = `
 			${statusHeader('Please provide a magnet link or infohash')}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -392,7 +409,7 @@ app.post('/add', async (c) => {
 			</form>
 			${footer()}
 		`;
-		return c.html(layout('Error', content));
+        return c.html(layout('Error', content));
     }
     try {
         // Extract user IP for RD geolocation
@@ -400,7 +417,7 @@ app.post('/add', async (c) => {
         return await processMagnet(c, magnet, userIP);
     } catch (err) {
         console.error('Error adding magnet:', err.message);
-		const content = `
+        const content = `
 			${statusHeader(`Failed to cast: ${err.message}`)}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -408,7 +425,7 @@ app.post('/add', async (c) => {
 			</form>
 			${footer()}
 		`;
-		return c.html(layout('Error', content));
+        return c.html(layout('Error', content));
     }
 });
 
@@ -416,7 +433,7 @@ app.post('/add/select', async (c) => {
     const body = await c.req.parseBody();
     const { torrentId, fileId } = body;
     if (!torrentId || !fileId) {
-		const content = `
+        const content = `
 			${statusHeader('Invalid file selection')}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -424,7 +441,7 @@ app.post('/add/select', async (c) => {
 			</form>
 			${footer()}
 		`;
-		return c.html(layout('Error', content));
+        return c.html(layout('Error', content));
     }
     try {
         // Extract user IP for RD geolocation
@@ -432,7 +449,7 @@ app.post('/add/select', async (c) => {
         return await processSelectedFile(c, torrentId, fileId, userIP);
     } catch (err) {
         console.error('Error selecting file:', err.message);
-		const content = `
+        const content = `
 			${statusHeader(`Failed to cast: ${err.message}`)}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -440,7 +457,7 @@ app.post('/add/select', async (c) => {
 			</form>
 			${footer()}
 		`;
-		return c.html(layout('Error', content));
+        return c.html(layout('Error', content));
     }
 });
 
@@ -448,7 +465,7 @@ app.post('/add/select', async (c) => {
 app.get('/add/:magnetOrHash', async (c) => {
     const magnetOrHash = c.req.param('magnetOrHash');
     if (!magnetOrHash) {
-		const content = `
+        const content = `
 			${statusHeader('Please provide a magnet link or infohash')}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -456,7 +473,7 @@ app.get('/add/:magnetOrHash', async (c) => {
 			</form>
 			${footer()}
 		`;
-		return c.html(layout('Error', content));
+        return c.html(layout('Error', content));
     }
     try {
         // Extract user IP for RD geolocation
@@ -464,7 +481,7 @@ app.get('/add/:magnetOrHash', async (c) => {
         return await processMagnet(c, decodeURIComponent(magnetOrHash), userIP);
     } catch (err) {
         console.error('Error adding magnet via URL path:', err.message);
-		const content = `
+        const content = `
 			${statusHeader(`Failed to cast: ${err.message}`)}
 			<form method="POST" action="/add">
 				<input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:... or infohash" required autofocus>
@@ -472,7 +489,7 @@ app.get('/add/:magnetOrHash', async (c) => {
 			</form>
 			${footer()}
 		`;
-		return c.html(layout('Error', content));
+        return c.html(layout('Error', content));
     }
 });
 
@@ -488,9 +505,15 @@ app.get('/health', (c) => {
 
 // --- WebDAV ---
 
-// Redirect /webdav to /webdav/
-app.all('/webdav', async (c) => {
-    return c.redirect('/webdav/', 301);
+// Redirect directories not ending in / to ones ending in / and handle legacy /webdav
+const directories = ['/downloads', '/dmmcast'];
+directories.forEach(path => {
+    app.all(path, (c) => c.redirect(path + '/', 301));
+});
+
+app.all('/webdav*', (c) => {
+    const path = c.req.path.replace(/^\/webdav/, '') || '/';
+    return c.redirect(path, 301);
 });
 
 /**
@@ -609,8 +632,8 @@ async function getDMMCastWebDAVFiles(c) {
     }
 }
 
-// PROPFIND /webdav/ - WebDAV root showing directories
-app.on(['PROPFIND'], '/webdav/', async (c) => {
+// PROPFIND / - WebDAV root showing directories
+app.on(['PROPFIND'], '/', async (c) => {
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
     const requestPath = requestUrl.pathname;
@@ -652,8 +675,8 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
     return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 });
 
-// PROPFIND /webdav/downloads/ - WebDAV endpoint for Real-Debrid download links
-app.on(['PROPFIND'], '/webdav/downloads/', async (c) => {
+// PROPFIND /downloads/ - WebDAV endpoint for Real-Debrid download links
+app.on(['PROPFIND'], '/downloads/', async (c) => {
     const files = await getRealDebridWebDAVFiles(c);
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
@@ -665,7 +688,7 @@ app.on(['PROPFIND'], '/webdav/downloads/', async (c) => {
 
     const responses = allFiles.map(file => `
       <D:response>
-        <D:href>${requestPath}${file.name}</D:href>
+        <D:href>${requestPath}${encodeURIComponent(file.name)}</D:href>
         <D:propstat>
           <D:prop>
             <D:resourcetype/>
@@ -697,8 +720,8 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
     return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 });
 
-// PROPFIND /webdav/dmmcast/ - WebDAV endpoint for DMM Cast
-app.on(['PROPFIND'], '/webdav/dmmcast/', async (c) => {
+// PROPFIND /dmmcast/ - WebDAV endpoint for DMM Cast
+app.on(['PROPFIND'], '/dmmcast/', async (c) => {
     const files = await getDMMCastWebDAVFiles(c);
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
@@ -710,7 +733,7 @@ app.on(['PROPFIND'], '/webdav/dmmcast/', async (c) => {
 
     const responses = allFiles.map(file => `
       <D:response>
-        <D:href>${requestPath}${file.name}</D:href>
+        <D:href>${requestPath}${encodeURIComponent(file.name)}</D:href>
         <D:propstat>
           <D:prop>
             <D:resourcetype/>
@@ -742,65 +765,26 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
     return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 });
 
-// GET /webdav/ - HTML index showing both RD downloads and DMM cast (no WebDAV PROPFIND)
-app.get('/webdav/', async (c) => {
-    const rdFiles = await getRealDebridWebDAVFiles(c);
-    const dmmFiles = await getDMMCastWebDAVFiles(c);
-    const hostname = new URL(c.req.url).origin;
 
-	const content = `
-		${pageHeader('Cast Magnet Link: WebDAV', 'Available files for streaming')}
-		${rdFiles && rdFiles.length > 0 ? `
-		<div class="status-info">
-			<h3>WebDAV: Most Recent Download Links</h3>
-			<p><small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small><br />
-			   <small>WebDAV: <code>${hostname}/webdav/downloads/</code></small>
-            </p>
-			<ul>
-				${rdFiles.map(file => `
-				<li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
-				`).join('')}
-			</ul>
-		</div>
-		` : ''}
-		${dmmFiles && dmmFiles.length > 0 ? `
-		<div class="status-info">
-			<h3>WebDAV: Most Recent Casted Links</h3>
-			<p><small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small><br />
-			   <small>WebDAV: <code>${hostname}/webdav/dmmcast/</code></small>
-            </p>
-			<ul>
-				${dmmFiles.map(file => `
-				<li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
-				`).join('')}
-			</ul>
-		</div>
-		` : ''}
-		${footer()}
-	`;
-    return c.html(layout('WebDAV', content));
-});
 
-// Redirect /webdav/downloads to /webdav/downloads/
-app.all('/webdav/downloads', async (c) => {
-    return c.redirect('/webdav/downloads/', 301);
-});
-
-// Redirect /webdav/dmmcast to /webdav/dmmcast/
-app.all('/webdav/dmmcast', async (c) => {
-    return c.redirect('/webdav/dmmcast/', 301);
-});
-
-// GET /webdav/downloads/ - HTML listing for Real-Debrid download links
-app.get('/webdav/downloads/', async (c) => {
-    const files = await getRealDebridWebDAVFiles(c);
-	const content = `
+// GET /downloads/ - HTML listing for Real-Debrid download links
+// GET /downloads/ - HTML listing for Real-Debrid download links
+app.get('/downloads/', async (c) => {
+    const config = c.get('config');
+    const rdDownloads = await getRealDebridDownloads(config);
+    const content = `
 		${pageHeader('Download Links', '<small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small>')}
 		<div class="status-info">
 			<h3>Available Files:</h3>
 			<ul>
-				${files.map(file => `
-				<li><a href="/webdav/downloads/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+				${rdDownloads.map(d => `
+				<li>
+                    ${d.filename}
+                    <small>
+                        <a href="${d.downloadUrl}" target="_blank"><code>${formatBytes(d.filesize || 0)}</code></a>
+                        &middot; <a href="/downloads/${encodeURIComponent(d.filename)}.strm"><code>1 KB .strm</code></a>
+                    </small>
+                </li>
 				`).join('')}
 			</ul>
 		</div>
@@ -809,16 +793,23 @@ app.get('/webdav/downloads/', async (c) => {
     return c.html(layout('Download Links', content));
 });
 
-// GET /webdav/dmmcast/ - HTML listing for DMM Cast
-app.get('/webdav/dmmcast/', async (c) => {
-    const files = await getDMMCastWebDAVFiles(c);
-	const content = `
+// GET /dmmcast/ - HTML listing for DMM Cast
+app.get('/dmmcast/', async (c) => {
+    const config = c.get('config');
+    const castedLinks = await getCastedLinks(config);
+    const content = `
 		${pageHeader('DMM Casted Links', '<small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small>')}
 		<div class="status-info">
 			<h3>Available Files:</h3>
 			<ul>
-				${files.map(file => `
-				<li><a href="/webdav/dmmcast/${file.name}">${file.name}</a> <small><code>${formatBytes(file.size)}</code></small></li>
+				${castedLinks.map(link => `
+				<li>
+                    ${link.filename}
+                    <small>
+                        <a href="${link.url}" target="_blank"><code>${link.sizeGB} GB</code></a>
+                        &middot; <a href="/dmmcast/${encodeURIComponent(link.filename)}.strm"><code>1 KB .strm</code></a>
+                    </small>
+                </li>
 				`).join('')}
 			</ul>
 		</div>
@@ -848,8 +839,8 @@ app.get('/public/*', async (c) => {
 // Removed generic /webdav/:directory/:filename route
 // Static files are now handled in the specific routes below
 
-// GET /webdav/downloads/:filename - Serve .strm files from Real-Debrid download links or static files
-app.get('/webdav/downloads/:filename', async (c) => {
+// GET /downloads/:filename - Serve .strm files from Real-Debrid download links or static files
+app.get('/downloads/:filename', async (c) => {
     const { filename } = c.req.param();
 
     // First, try to serve as static file
@@ -878,8 +869,8 @@ app.get('/webdav/downloads/:filename', async (c) => {
     return c.text('File type not supported for direct GET', 400);
 });
 
-// GET /webdav/dmmcast/:filename - Serve .strm files from DMM Cast or static files
-app.get('/webdav/dmmcast/:filename', async (c) => {
+// GET /dmmcast/:filename - Serve .strm files from DMM Cast or static files
+app.get('/dmmcast/:filename', async (c) => {
     const { filename } = c.req.param();
 
     // First, try to serve as static file
