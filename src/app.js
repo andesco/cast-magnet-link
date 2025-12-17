@@ -96,6 +96,8 @@ async function getCastedLinks(config) {
                 filename: filename,
                 sizeGB: link.size ? (Math.round(link.size / 1024 * 10) / 10).toFixed(1) : '0.0', // Convert MB to GB, 1 decimal
                 updatedAt: link.updatedAt,
+                imdbId: link.imdbId,  // For deletion support
+                hash: link.hash,       // For deletion support
             };
         });
     } catch (error) {
@@ -594,7 +596,8 @@ async function getDMMCastWebDAVFiles(c) {
         const filesMap = new Map();
         for (const link of castedLinks) {
             const strmUrl = link.url;
-            const filename = `${link.filename}.strm`;
+            // Encode hash and imdbId into filename for deletion support
+            const filename = `${link.filename} {hash-${link.hash}}{imdb-${link.imdbId}}.strm`;
             const modified = new Date(link.updatedAt).getTime();
 
             const fileObj = {
@@ -607,6 +610,8 @@ async function getDMMCastWebDAVFiles(c) {
                 originalFilename: link.filename,
                 filesize: link.sizeGB * 1024 * 1024 * 1024,
                 downloadUrl: link.url,
+                imdbId: link.imdbId,    // Store for reference
+                hash: link.hash,         // Store for reference
             };
 
             const existing = filesMap.get(filename);
@@ -676,11 +681,11 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
 });
 
 // PROPFIND /downloads/ - WebDAV endpoint for Real-Debrid download links
-app.on(['PROPFIND'], '/downloads/', async (c) => {
+app.on(['PROPFIND'], ['/downloads', '/downloads/'], async (c) => {
     const files = await getRealDebridWebDAVFiles(c);
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
-    const requestPath = requestUrl.pathname;
+    const requestPath = '/downloads/'; // Always use trailing slash in response
 
     const env = getEnv(c);
     const downloadsStaticFiles = await getAssetsInDirectory('downloads', env);
@@ -691,6 +696,7 @@ app.on(['PROPFIND'], '/downloads/', async (c) => {
         <D:href>${requestPath}${encodeURIComponent(file.name)}</D:href>
         <D:propstat>
           <D:prop>
+            <D:displayname>${file.name}</D:displayname>
             <D:resourcetype/>
             <D:getcontentlength>${file.size}</D:getcontentlength>
             <D:getlastmodified>${new Date(file.modified).toUTCString()}</D:getlastmodified>
@@ -721,11 +727,11 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
 });
 
 // PROPFIND /dmmcast/ - WebDAV endpoint for DMM Cast
-app.on(['PROPFIND'], '/dmmcast/', async (c) => {
+app.on(['PROPFIND'], ['/dmmcast', '/dmmcast/'], async (c) => {
     const files = await getDMMCastWebDAVFiles(c);
     const depth = c.req.header('Depth') || '0';
     const requestUrl = new URL(c.req.url);
-    const requestPath = requestUrl.pathname;
+    const requestPath = '/dmmcast/'; // Always use trailing slash in response
 
     const env = getEnv(c);
     const dmmcastStaticFiles = await getAssetsInDirectory('dmmcast', env);
@@ -736,6 +742,7 @@ app.on(['PROPFIND'], '/dmmcast/', async (c) => {
         <D:href>${requestPath}${encodeURIComponent(file.name)}</D:href>
         <D:propstat>
           <D:prop>
+            <D:displayname>${file.name}</D:displayname>
             <D:resourcetype/>
             <D:getcontentlength>${file.size}</D:getcontentlength>
             <D:getlastmodified>${new Date(file.modified).toUTCString()}</D:getlastmodified>
@@ -764,6 +771,7 @@ ${depth !== '0' ? responses : ''}${collectionResponse}
 
     return new Response(xml, { status: 207, headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
 });
+
 
 
 
@@ -897,6 +905,50 @@ app.get('/dmmcast/:filename', async (c) => {
     }
 
     return c.text('File type not supported for direct GET', 400);
+});
+
+// DELETE /dmmcast/* - Delete DMM Cast entry via WebDAV
+app.on(['DELETE'], '/dmmcast/*', async (c) => {
+    // Extract filename from path
+    const fullPath = new URL(c.req.url).pathname;
+    const filename = decodeURIComponent(fullPath.replace('/dmmcast/', ''));
+
+    try {
+        // Parse hash and imdbId from encoded filename (both with prefixes)
+        const match = filename.match(/\{hash-([^}]+)\}\{imdb-([^}]+)\}\.strm$/);
+        if (!match) {
+            console.error('Invalid filename format:', filename);
+            return c.text('Invalid filename format - missing hash or imdbId encoding', 400);
+        }
+
+        const [, hash, imdbId] = match;
+        const config = c.get('config');
+
+        console.log(`Deleting DMM cast: imdbId=${imdbId}, hash=${hash}`);
+
+        // Call DMM delete API
+        const response = await fetch('https://debridmediamanager.com/api/stremio/deletelink', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: config.rdAccessToken,
+                imdbId: imdbId,
+                hash: hash,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            console.error('DMM delete failed:', response.status, error);
+            return c.text(`Delete failed: ${error}`, response.status);
+        }
+
+        console.log('DMM cast deleted successfully');
+        return new Response(null, { status: 204 }); // No Content
+    } catch (error) {
+        console.error('Error deleting DMM cast:', error);
+        return c.text(`Delete failed: ${error.message}`, 500);
+    }
 });
 
 export default app;
