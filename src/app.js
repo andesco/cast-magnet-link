@@ -94,6 +94,7 @@ async function getCastedLinks(config) {
             return {
                 url: link.url || '#',
                 filename: filename,
+                strmFilename: `${filename} {hash-${link.hash}}{imdb-${link.imdbId}}.strm`,
                 sizeGB: link.size ? (Math.round(link.size / 1024 * 10) / 10).toFixed(1) : '0.0', // Convert MB to GB, 1 decimal
                 updatedAt: link.updatedAt,
                 imdbId: link.imdbId,  // For deletion support
@@ -361,7 +362,7 @@ app.get('/', async (c) => {
                     ${link.filename}
                     <small>
                         <a href="${link.url}" target="_blank"><code>${link.sizeGB} GB</code></a>
-                        &middot; <a href="/dmmcast/${encodeURIComponent(link.filename)}.strm"><code>1 KB .strm</code></a>
+                        &middot; <a href="/dmmcast/${encodeURIComponent(link.strmFilename)}"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
@@ -596,8 +597,8 @@ async function getDMMCastWebDAVFiles(c) {
         const filesMap = new Map();
         for (const link of castedLinks) {
             const strmUrl = link.url;
-            // Encode hash and imdbId into filename for deletion support
-            const filename = `${link.filename} {hash-${link.hash}}{imdb-${link.imdbId}}.strm`;
+            // Use precached strmFilename
+            const filename = link.strmFilename;
             const modified = new Date(link.updatedAt).getTime();
 
             const fileObj = {
@@ -815,7 +816,7 @@ app.get('/dmmcast/', async (c) => {
                     ${link.filename}
                     <small>
                         <a href="${link.url}" target="_blank"><code>${link.sizeGB} GB</code></a>
-                        &middot; <a href="/dmmcast/${encodeURIComponent(link.filename)}.strm"><code>1 KB .strm</code></a>
+                        &middot; <a href="/dmmcast/${encodeURIComponent(link.strmFilename)}"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
