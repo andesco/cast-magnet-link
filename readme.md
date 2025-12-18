@@ -80,7 +80,7 @@ Cast Magnet Link:
   - generates and caches an unrestricted download link
   - removes the magnet link from your library (while keeping the download link)
 
-> [!NOTE]
+> [!TIP]
 > A browser extension like [StopTheMadness Pro](https://apple.co/4e0lkPG) that supports [URL redirect rules](https://underpassapp.com/StopTheMadness/Pro/Docs/Redirects.html) can redirect magnet links to this service to automatically create new download links: \
 > matching pattern: `/^magnet:\?xt=urn:btih:([A-Fa-f0-9]+)(?:&amp;.*)?$/` \
 > replacement pattern: `https://cast.user.workers.dev/add/$1`
@@ -97,6 +97,11 @@ Add one or both of the WebDAV endpoints to your media player:
 - password: `WEBDAV_PASSWORD`
 
 WebDAV directories and file lists are refreshed each time you access the service, with `.strm` files created for each link.
+
+> [!TIP]
+> **Delete via WebDAV**: DMM Cast `.strm` filenames include `hash` and `imdb` metadata. These additions allow you to remove media from DMM Cast directly from [Infuse] and supported media players by deleting the file from within the app.
+
+
 
 ### Media Player Artwork
 
@@ -141,7 +146,7 @@ wrangler deploy
 
 Run the service on a traditional VPS or server.
 
-> [!NOTE]
+> [!IMPORTANT]
 > Cloudlfare Worker deployment is recommended and used by the developer.
 
 **Manual Deployment**:
