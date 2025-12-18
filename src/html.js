@@ -1,7 +1,7 @@
 // src/html.js
 
 export function layout(title, content) {
-    const pageTitle = title ? `${title} - Cast Magnet Link` : 'Cast Magnet Link';
+    const pageTitle = title ? `Cast Magnet Link · ${title}` : 'Cast Magnet Link';
     // The cache-busting query parameter is added here.
     const cacheBuster = new Date().getTime();
     return `<!DOCTYPE html>

@@ -334,9 +334,9 @@ app.get('/', async (c) => {
 				${rdDownloads.map(d => `
 				<li>
                     ${d.filename}
-                    <small>
+                    <small class="nowrap">
                         <a href="${d.downloadUrl}" target="_blank"><code>${formatBytes(d.filesize || 0)}</code></a>
-                        &middot; <a href="/downloads/${encodeURIComponent(d.filename)}.strm"><code>1 KB .strm</code></a>
+                        &nbsp;<a href="/downloads/${encodeURIComponent(d.filename)}.strm"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
@@ -360,9 +360,9 @@ app.get('/', async (c) => {
 				${castedLinks.map(link => `
 				<li>
                     ${link.filename}
-                    <small>
+                    <small class="nowrap">
                         <a href="${link.url}" target="_blank"><code>${link.sizeGB} GB</code></a>
-                        &middot; <a href="/dmmcast/${encodeURIComponent(link.strmFilename)}"><code>1 KB .strm</code></a>
+                        &nbsp;<a href="/dmmcast/${encodeURIComponent(link.strmFilename)}"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
@@ -374,7 +374,7 @@ app.get('/', async (c) => {
 		` : ''}
 		${footer()}
 	`;
-    return c.html(layout('Cast Magnet Link', content));
+    return c.html(layout('', content));
 });
 
 app.get('/add', (c) => {
@@ -397,7 +397,7 @@ app.get('/add', (c) => {
         </small>
 		${footer()}
 	`;
-    return c.html(layout('Add Magnet', content));
+    return c.html(layout('Add', content));
 });
 
 app.post('/add', async (c) => {
@@ -782,16 +782,16 @@ app.get('/downloads/', async (c) => {
     const config = c.get('config');
     const rdDownloads = await getRealDebridDownloads(config);
     const content = `
-		${pageHeader('Download Links', '<small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small>')}
+		${pageHeader('Cast Magnet Link: Downloads', '<small>source: <a href="https://real-debrid.com/downloads" target="_blank">real-debrid.com/downloads</a></small>')}
 		<div class="status-info">
 			<h3>Available Files:</h3>
 			<ul>
 				${rdDownloads.map(d => `
 				<li>
                     ${d.filename}
-                    <small>
+                    <small class="nowrap">
                         <a href="${d.downloadUrl}" target="_blank"><code>${formatBytes(d.filesize || 0)}</code></a>
-                        &middot; <a href="/downloads/${encodeURIComponent(d.filename)}.strm"><code>1 KB .strm</code></a>
+                        &nbsp;<a href="/downloads/${encodeURIComponent(d.filename)}.strm"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
@@ -799,7 +799,7 @@ app.get('/downloads/', async (c) => {
 		</div>
 		${footer()}
 	`;
-    return c.html(layout('Download Links', content));
+    return c.html(layout('Downloads', content));
 });
 
 // GET /dmmcast/ - HTML listing for DMM Cast
@@ -807,16 +807,16 @@ app.get('/dmmcast/', async (c) => {
     const config = c.get('config');
     const castedLinks = await getCastedLinks(config);
     const content = `
-		${pageHeader('DMM Casted Links', '<small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small>')}
+		${pageHeader('Cast Magnet Link: DMM Cast', '<small>source: <a href="https://debridmediamanager.com/stremio/manage" target="_blank">debridmediamanager.com/stremio/manage</a></small>')}
 		<div class="status-info">
 			<h3>Available Files:</h3>
 			<ul>
 				${castedLinks.map(link => `
 				<li>
                     ${link.filename}
-                    <small>
+                    <small class="nowrap">
                         <a href="${link.url}" target="_blank"><code>${link.sizeGB} GB</code></a>
-                        &middot; <a href="/dmmcast/${encodeURIComponent(link.strmFilename)}"><code>1 KB .strm</code></a>
+                        &nbsp;<a href="/dmmcast/${encodeURIComponent(link.strmFilename)}"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
@@ -824,7 +824,7 @@ app.get('/dmmcast/', async (c) => {
 		</div>
 		${footer()}
 	`;
-    return c.html(layout('DMM Casted Links', content));
+    return c.html(layout('DMM Cast', content));
 });
 
 // --- Static File Serving ---
