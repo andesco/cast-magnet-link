@@ -6,5 +6,9 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 preview_urls = false
 
+# [[routes]]
+# pattern = "dmmcast.example.dev"
+# custom_domain = true
+
 [build]
-command = "npm run build:assets"
+command = "npm run build"

@@ -5,7 +5,7 @@
   "description": "WebDAV streaming service for Real-Debrid casted magnet links",
   "main": "src/server.js",
   "scripts": {
-    "build:assets": "node scripts/generate-assets.js",
+    "build": "node scripts/generate-assets.js",
     "node:start": "node src/server.js",
     "node:dev": "nodemon src/server.js",
     "worker:deploy": "wrangler deploy --config wrangler.local.toml",

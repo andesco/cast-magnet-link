@@ -3,7 +3,7 @@
 ## Build/Lint/Test Commands
 - **Dev server (Node.js)**: `npm run node:dev`
 - **Dev server (Worker)**: `npm run worker:dev`
-- **Build assets**: `npm run build:assets`
+- **Build assets**: `npm run build`
 - **Deploy worker**: `npm run worker:deploy`
 - **No linting configured** - run `npm install --save-dev eslint` to add
 - **No tests configured** - run `npm install --save-dev jest` to add
