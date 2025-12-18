@@ -107,6 +107,12 @@ WebDAV directories and file lists are refreshed each time you access the service
 
 Infuse and other media players that support [overriding artwork](https://support.firecore.com/hc/en-us/articles/4405042929559-Overriding-Artwork-and-Metadata) can use the [artwork] served via WebDAV. Infuse defaults to using `favorite.png` and `favorite-atv.png`.
 
+<div align="center">
+    <p><img src="public/dmmcast/dmmcast-atv.png" width="300px"><br />
+    DMM Cast
+</div>
+
+
 ## Configuration
 
 ### Environment Variables
