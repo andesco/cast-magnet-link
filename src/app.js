@@ -94,7 +94,7 @@ async function getCastedLinks(config) {
             return {
                 url: link.url || '#',
                 filename: filename,
-                strmFilename: `${filename} {hash-${link.hash}}{imdb-${link.imdbId}}.strm`,
+                strmFilename: `${filename}{hash-${link.hash}}{imdb-${link.imdbId}}.strm`,
                 sizeGB: link.size ? (Math.round(link.size / 1024 * 10) / 10).toFixed(1) : '0.0', // Convert MB to GB, 1 decimal
                 updatedAt: link.updatedAt,
                 imdbId: link.imdbId,  // For deletion support
@@ -336,7 +336,7 @@ app.get('/', async (c) => {
                     ${d.filename}
                     <small class="nowrap">
                         <a href="${d.downloadUrl}" target="_blank"><code>${formatBytes(d.filesize || 0)}</code></a>
-                        &nbsp;<a href="/downloads/${encodeURIComponent(d.filename)}.strm"><code>1 KB .strm</code></a>
+                        &nbsp;<a href="/downloads/${encodeURIComponent(d.filename + '.strm').replace(/%7B/g, '{').replace(/%7D/g, '}')}"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
@@ -362,7 +362,7 @@ app.get('/', async (c) => {
                     ${link.filename}
                     <small class="nowrap">
                         <a href="${link.url}" target="_blank"><code>${link.sizeGB} GB</code></a>
-                        &nbsp;<a href="/dmmcast/${encodeURIComponent(link.strmFilename)}"><code>1 KB .strm</code></a>
+                        &nbsp;<a href="/dmmcast/${encodeURIComponent(link.strmFilename).replace(/%7B/g, '{').replace(/%7D/g, '}')}"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
@@ -791,7 +791,7 @@ app.get('/downloads/', async (c) => {
                     ${d.filename}
                     <small class="nowrap">
                         <a href="${d.downloadUrl}" target="_blank"><code>${formatBytes(d.filesize || 0)}</code></a>
-                        &nbsp;<a href="/downloads/${encodeURIComponent(d.filename)}.strm"><code>1 KB .strm</code></a>
+                        &nbsp;<a href="/downloads/${encodeURIComponent(d.filename + '.strm').replace(/%7B/g, '{').replace(/%7D/g, '}')}"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
@@ -816,7 +816,7 @@ app.get('/dmmcast/', async (c) => {
                     ${link.filename}
                     <small class="nowrap">
                         <a href="${link.url}" target="_blank"><code>${link.sizeGB} GB</code></a>
-                        &nbsp;<a href="/dmmcast/${encodeURIComponent(link.strmFilename)}"><code>1 KB .strm</code></a>
+                        &nbsp;<a href="/dmmcast/${encodeURIComponent(link.strmFilename).replace(/%7B/g, '{').replace(/%7D/g, '}')}"><code>1 KB .strm</code></a>
                     </small>
                 </li>
 				`).join('')}
